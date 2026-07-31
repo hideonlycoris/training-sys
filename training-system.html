@@ -1,0 +1,1767 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>驭长风 — 供应链新员工培训系统</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --primary:#1a3c6e;--primary-light:#2a5ca8;--accent:#c9a84c;
+  --bg:#f4f6f9;--card:#fff;--text:#222;--text-light:#666;
+  --success:#27ae60;--danger:#e74c3c;--warning:#f39c12;
+  --radius:12px;--shadow:0 4px 20px rgba(0,0,0,.08);
+}
+html{font-size:15px}
+body{font-family:'Noto Sans SC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.7}
+.page{display:none;animation:fadeIn .4s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* Login */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0f2647 0%,#1a3c6e 40%,#2a5ca8 100%);position:relative;overflow:hidden}
+.login-wrap::before{content:'';position:absolute;width:600px;height:600px;border-radius:50%;background:rgba(201,168,76,.08);top:-200px;right:-150px}
+.login-wrap::after{content:'';position:absolute;width:400px;height:400px;border-radius:50%;background:rgba(255,255,255,.03);bottom:-100px;left:-100px}
+.login-card{background:#fff;border-radius:20px;padding:48px 44px;width:420px;max-width:92vw;box-shadow:0 24px 64px rgba(0,0,0,.25);position:relative;z-index:1}
+.login-card .logo-area{text-align:center;margin-bottom:32px}
+.login-card .logo-area h1{font-size:1.45rem;color:var(--primary);font-weight:700;margin-bottom:4px}
+.login-card .logo-area p{font-size:.85rem;color:var(--text-light)}
+.form-group{margin-bottom:20px}
+.form-group label{display:block;font-size:.85rem;font-weight:500;color:var(--text);margin-bottom:6px}
+.form-group input,.form-group select{width:100%;padding:12px 16px;border:2px solid #e0e4ea;border-radius:10px;font-size:.95rem;font-family:inherit;transition:border .2s;background:#fafbfc;outline:none}
+.form-group input:focus,.form-group select:focus{border-color:var(--primary-light);background:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 28px;border:none;border-radius:10px;font-size:.95rem;font-weight:600;font-family:inherit;cursor:pointer;transition:all .2s}
+.btn-primary{background:var(--primary);color:#fff;width:100%}
+.btn-primary:hover{background:var(--primary-light);transform:translateY(-1px);box-shadow:0 6px 20px rgba(26,60,110,.3)}
+.btn-secondary{background:#eef1f6;color:var(--primary)}
+.btn-secondary:hover{background:#dde3ed}
+.btn-success{background:var(--success);color:#fff}
+.btn-success:hover{background:#219a52}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-accent:hover{background:#b8953e}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+/* Top bar */
+.topbar{background:var(--primary);color:#fff;padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.15)}
+.topbar .brand{font-size:1.05rem;font-weight:700;letter-spacing:.5px}
+.topbar .user-info{display:flex;align-items:center;gap:16px;font-size:.85rem}
+.topbar .timer-badge{background:rgba(255,255,255,.15);padding:4px 14px;border-radius:20px;font-variant-numeric:tabular-nums}
+.topbar .btn-logout{background:rgba(255,255,255,.12);color:#fff;padding:6px 16px;font-size:.82rem;border-radius:8px}
+
+/* Dashboard */
+.dashboard{max-width:960px;margin:0 auto;padding:32px 20px}
+.dashboard h2{font-size:1.35rem;margin-bottom:8px}
+.progress-section{background:var(--card);border-radius:var(--radius);padding:28px;margin:20px 0;box-shadow:var(--shadow)}
+.progress-bar-outer{background:#e8ebf0;border-radius:20px;height:22px;overflow:hidden;margin:12px 0 6px}
+.progress-bar-inner{height:100%;background:linear-gradient(90deg,var(--primary),var(--accent));border-radius:20px;transition:width .6s ease;min-width:0}
+.progress-text{font-size:.82rem;color:var(--text-light);text-align:right}
+.module-cards{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:24px}
+.module-card{background:var(--card);border-radius:var(--radius);padding:28px;box-shadow:var(--shadow);border-left:5px solid var(--primary);transition:transform .2s,box-shadow .2s;cursor:pointer}
+.module-card:hover{transform:translateY(-3px);box-shadow:0 8px 30px rgba(0,0,0,.12)}
+.module-card.completed{border-left-color:var(--success)}
+.module-card h3{font-size:1.05rem;margin-bottom:8px;color:var(--primary)}
+.module-card .meta{font-size:.82rem;color:var(--text-light);margin-bottom:14px}
+.module-card .chapter-list{font-size:.82rem;color:var(--text-light);line-height:2}
+.module-card .status-badge{display:inline-block;padding:3px 12px;border-radius:20px;font-size:.75rem;font-weight:600;margin-top:12px}
+.status-badge.not-started{background:#f0f0f0;color:#999}
+.status-badge.in-progress{background:#fff3cd;color:#856404}
+.status-badge.done{background:#d4edda;color:#155724}
+.cert-btn-area{text-align:center;margin-top:32px}
+
+/* Module content page */
+.module-page{max-width:840px;margin:0 auto;padding:32px 20px}
+.module-page h2{font-size:1.3rem;margin-bottom:20px;color:var(--primary)}
+.accordion{margin-bottom:16px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.accordion-header{padding:18px 24px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-weight:600;font-size:.95rem;transition:background .2s;user-select:none}
+.accordion-header:hover{background:#f8f9fb}
+.accordion-header .arrow{transition:transform .3s;font-size:.8rem;color:var(--text-light)}
+.accordion-header.open .arrow{transform:rotate(90deg)}
+.accordion-header .ch-status{width:20px;height:20px;border-radius:50%;border:2px solid #ccc;margin-right:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.7rem}
+.accordion-header .ch-status.read{border-color:var(--success);background:var(--success);color:#fff}
+.accordion-body{max-height:0;overflow:hidden;transition:max-height .4s ease}
+.accordion-body.open{max-height:3000px}
+.accordion-content{padding:0 24px 24px;font-size:.9rem;color:#444;line-height:1.9}
+.accordion-content p{margin-bottom:10px}
+.accordion-content ul{margin:8px 0 8px 20px}
+.accordion-content li{margin-bottom:4px}
+.accordion-content h4{color:var(--primary);margin:14px 0 6px;font-size:.95rem}
+.read-confirm{margin-top:16px;padding-top:14px;border-top:1px solid #eee;display:flex;align-items:center;gap:10px;font-size:.85rem;color:var(--text-light)}
+.read-confirm input[type=checkbox]{width:18px;height:18px;accent-color:var(--success)}
+.module-footer{display:flex;justify-content:space-between;align-items:center;margin-top:28px;gap:12px;flex-wrap:wrap}
+
+/* Exam */
+.exam-page{max-width:800px;margin:0 auto;padding:32px 20px}
+.exam-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.exam-header h2{font-size:1.25rem;color:var(--primary)}
+.exam-timer{background:var(--danger);color:#fff;padding:8px 20px;border-radius:24px;font-size:1rem;font-weight:700;font-variant-numeric:tabular-nums}
+.exam-timer.warning{animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+.question-card{background:var(--card);border-radius:var(--radius);padding:24px;margin-bottom:16px;box-shadow:var(--shadow)}
+.question-card .q-num{font-size:.8rem;color:var(--accent);font-weight:700;margin-bottom:6px}
+.question-card .q-text{font-size:.95rem;font-weight:600;margin-bottom:14px;line-height:1.6}
+.option-list{list-style:none}
+.option-list li{margin-bottom:8px}
+.option-list label{display:flex;align-items:center;gap:10px;padding:10px 16px;border:2px solid #e8ebf0;border-radius:10px;cursor:pointer;transition:all .15s;font-size:.9rem}
+.option-list label:hover{border-color:var(--primary-light);background:#f6f8fc}
+.option-list input:checked+span{color:var(--primary);font-weight:600}
+.option-list label:has(input:checked){border-color:var(--primary);background:#eef3fb}
+.option-list input[type=radio]{accent-color:var(--primary)}
+.exam-footer{text-align:center;margin-top:28px}
+
+/* Result */
+.result-page{max-width:600px;margin:0 auto;padding:48px 20px;text-align:center}
+.result-circle{width:160px;height:160px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 24px;font-size:2.4rem;font-weight:900;box-shadow:0 8px 30px rgba(0,0,0,.1)}
+.result-circle.pass{background:linear-gradient(135deg,#d4edda,#b7e4c7);color:var(--success)}
+.result-circle.fail{background:linear-gradient(135deg,#fde8e8,#f5c6c6);color:var(--danger)}
+.result-circle small{font-size:.8rem;font-weight:400}
+.result-msg{font-size:1.1rem;margin-bottom:24px;line-height:1.7}
+.result-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+
+/* Certificate */
+.cert-page{max-width:900px;margin:0 auto;padding:32px 20px}
+.cert-preview{background:#fffef7;border:3px solid var(--accent);border-radius:8px;padding:48px;text-align:center;position:relative;margin-bottom:24px;box-shadow:0 8px 32px rgba(201,168,76,.15)}
+.cert-preview::before{content:'';position:absolute;inset:8px;border:1.5px solid var(--accent);border-radius:4px;pointer-events:none}
+.cert-preview .cert-title{font-family:'Noto Serif SC',serif;font-size:2rem;font-weight:700;color:var(--primary);margin-bottom:4px;letter-spacing:4px}
+.cert-preview .cert-subtitle{font-size:.9rem;color:var(--text-light);margin-bottom:28px}
+.cert-preview .cert-body{font-size:1rem;line-height:2.2;margin-bottom:24px;text-align:left;padding:0 20px}
+.cert-preview .cert-body strong{color:var(--primary)}
+.cert-detail-table{width:100%;border-collapse:collapse;margin:20px 0;font-size:.85rem;text-align:left}
+.cert-detail-table th{background:var(--primary);color:#fff;padding:10px 14px;font-weight:500}
+.cert-detail-table td{padding:10px 14px;border-bottom:1px solid #e8e0c8}
+.cert-seal{width:100px;height:100px;border:3px solid #c0392b;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#c0392b;font-weight:900;font-size:.75rem;margin:20px 0;transform:rotate(-15deg);line-height:1.3;text-align:center}
+.cert-signatures{display:flex;justify-content:space-around;margin-top:28px;font-size:.85rem;color:var(--text-light)}
+.cert-signatures .sig-block{text-align:center}
+.cert-signatures .sig-line{width:140px;border-top:1px solid #999;margin:8px auto 4px}
+.cert-export-btns{text-align:center;margin-top:20px;display:flex;gap:12px;justify-content:center}
+
+/* Responsive */
+@media(max-width:640px){
+  .module-cards{grid-template-columns:1fr}
+  .login-card{padding:32px 24px}
+  .cert-preview{padding:28px 16px}
+  .topbar{padding:0 16px}
+  .topbar .brand{font-size:.9rem}
+}
+
+/* Upload Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.active{display:flex}
+.modal{background:#fff;border-radius:16px;padding:36px;width:600px;max-width:92vw;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);position:relative}
+.modal h3{font-size:1.15rem;color:var(--primary);margin-bottom:16px}
+.modal-close{position:absolute;top:16px;right:20px;background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--text-light)}
+.upload-zone{border:2px dashed #c0c8d8;border-radius:12px;padding:36px 20px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px;background:#fafbfc}
+.upload-zone:hover,.upload-zone.dragover{border-color:var(--primary);background:#eef3fb}
+.upload-zone input{display:none}
+.upload-zone .icon{font-size:2rem;margin-bottom:8px;color:var(--primary-light)}
+.upload-zone p{font-size:.88rem;color:var(--text-light)}
+.upload-zone .filename{font-size:.85rem;color:var(--primary);font-weight:600;margin-top:8px}
+.format-hint{background:#f8f9fb;border-radius:10px;padding:16px 20px;font-size:.82rem;color:var(--text-light);line-height:1.8;margin-bottom:16px}
+.format-hint strong{color:var(--text)}
+.format-hint code{background:#e8ebf0;padding:1px 6px;border-radius:4px;font-size:.8rem}
+.module-select-row{display:flex;gap:12px;margin-bottom:16px;align-items:center}
+.module-select-row label{font-size:.88rem;font-weight:500;white-space:nowrap}
+.module-select-row select{flex:1;padding:10px 14px;border:2px solid #e0e4ea;border-radius:10px;font-size:.9rem;font-family:inherit;outline:none}
+.upload-preview{margin:16px 0;max-height:240px;overflow-y:auto;border:1px solid #e8ebf0;border-radius:10px}
+.upload-preview table{width:100%;border-collapse:collapse;font-size:.82rem}
+.upload-preview th{background:var(--primary);color:#fff;padding:8px 10px;text-align:left;font-weight:500;position:sticky;top:0}
+.upload-preview td{padding:8px 10px;border-bottom:1px solid #eee}
+.upload-preview tr:nth-child(even){background:#f8f9fb}
+.upload-status{padding:10px 16px;border-radius:8px;font-size:.85rem;margin-top:12px;display:none}
+.upload-status.success{display:block;background:#d4edda;color:#155724}
+.upload-status.error{display:block;background:#fde8e8;color:#c0392b}
+.upload-actions{display:flex;gap:12px;margin-top:16px;justify-content:flex-end}
+.btn-sm{padding:9px 20px;font-size:.85rem}
+</style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div id="page-login" class="page active">
+<div class="login-wrap">
+<div class="login-card">
+  <div class="logo-area">
+    <h1>驭长风供应链培训系统</h1>
+    <p>新员工入职培训</p>
+  </div>
+  <div class="form-group">
+    <label>姓名</label>
+    <input type="text" id="inp-name" placeholder="请输入您的姓名" autocomplete="off">
+  </div>
+  <div class="form-group">
+    <label>工号</label>
+    <input type="text" id="inp-id" placeholder="请输入您的工号" autocomplete="off">
+  </div>
+  <div class="form-group">
+    <label>部门</label>
+    <select id="inp-dept">
+      <option value="">请选择部门</option>
+      <optgroup label="业务部门">
+        <option>运营一部</option><option>运营二部</option><option>运营三部</option><option>运营四部</option>
+        <option>开发部</option><option>采购部</option><option>财务部</option><option>人力行政部</option>
+      </optgroup>
+      <optgroup label="供应链部门">
+        <option>物控组</option><option>海运物流组</option><option>仓储组</option><option>品质组</option>
+        <option>供应链综合组</option>
+      </optgroup>
+    </select>
+  </div>
+  <button class="btn btn-primary" onclick="doLogin()">进入培训系统</button>
+</div>
+</div>
+</div>
+
+<!-- DASHBOARD PAGE -->
+<div id="page-dashboard" class="page">
+<div class="topbar">
+  <span class="brand">驭长风 · 供应链培训</span>
+  <div class="user-info">
+    <span class="timer-badge" id="global-timer">00:00:00</span>
+    <span id="topbar-name"></span>
+    <button class="btn btn-logout" onclick="doLogout()">退出</button>
+  </div>
+</div>
+<div class="dashboard">
+  <h2>培训仪表盘</h2>
+  <p style="color:var(--text-light);font-size:.88rem">欢迎，<span id="dash-name"></span>！请依次完成以下培训模块。</p>
+  <div class="progress-section">
+    <div style="display:flex;justify-content:space-between;align-items:baseline">
+      <strong>总体进度</strong>
+      <span class="progress-text" id="progress-label">0%</span>
+    </div>
+    <div class="progress-bar-outer"><div class="progress-bar-inner" id="progress-bar" style="width:0%"></div></div>
+  </div>
+  <div class="module-cards" id="module-cards"></div>
+  <div class="cert-btn-area" id="cert-btn-area" style="display:none">
+    <button class="btn btn-accent" onclick="showPage('page-certificate');renderCert()">查看培训合格证书</button>
+  </div>
+  <div style="text-align:center;margin-top:16px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+    <button class="btn btn-secondary" onclick="openUploadModal()">上传自定义题库</button>
+    <button class="btn btn-secondary" onclick="openContentUploadModal()">上传课件生成模块</button>
+  </div>
+</div>
+</div>
+
+<!-- MODULE CONTENT PAGE -->
+<div id="page-module" class="page">
+<div class="topbar">
+  <span class="brand" id="module-topbar-title">培训模块</span>
+  <div class="user-info">
+    <span class="timer-badge" id="module-timer">00:00:00</span>
+    <button class="btn btn-logout" onclick="backToDash()">返回仪表盘</button>
+  </div>
+</div>
+<div class="module-page">
+  <h2 id="module-title"></h2>
+  <div id="accordion-container"></div>
+  <div class="module-footer">
+    <button class="btn btn-secondary" onclick="backToDash()">← 返回仪表盘</button>
+    <button class="btn btn-primary" id="btn-start-exam" disabled onclick="startExam()">开始考试（请先阅读全部内容）</button>
+  </div>
+</div>
+</div>
+
+<!-- EXAM PAGE -->
+<div id="page-exam" class="page">
+<div class="topbar">
+  <span class="brand" id="exam-topbar-title">模块考试</span>
+  <div class="user-info">
+    <span class="exam-timer" id="exam-timer">30:00</span>
+  </div>
+</div>
+<div class="exam-page">
+  <div class="exam-header">
+    <h2 id="exam-title"></h2>
+    <span style="font-size:.85rem;color:var(--text-light)">共10题，每题10分，80分及格</span>
+  </div>
+  <div id="exam-questions"></div>
+  <div class="exam-footer">
+    <button class="btn btn-primary" style="width:auto;padding:14px 48px" onclick="submitExam()">提交试卷</button>
+  </div>
+</div>
+</div>
+
+<!-- RESULT PAGE -->
+<div id="page-result" class="page">
+<div class="topbar">
+  <span class="brand">考试结果</span>
+  <div class="user-info">
+    <button class="btn btn-logout" onclick="backToDash()">返回仪表盘</button>
+  </div>
+</div>
+<div class="result-page">
+  <div class="result-circle" id="result-circle"><span id="result-score">0</span><small>分</small></div>
+  <p class="result-msg" id="result-msg"></p>
+  <div class="result-btns" id="result-btns"></div>
+</div>
+</div>
+
+<!-- CERTIFICATE PAGE -->
+<div id="page-certificate" class="page">
+<div class="topbar">
+  <span class="brand">培训合格证书</span>
+  <div class="user-info">
+    <button class="btn btn-logout" onclick="backToDash()">返回仪表盘</button>
+  </div>
+</div>
+<div class="cert-page">
+  <div class="cert-preview" id="cert-preview"></div>
+  <div class="cert-export-btns">
+    <button class="btn btn-accent" onclick="exportPDF()">导出PDF证书</button>
+    <button class="btn btn-secondary" onclick="backToDash()">返回仪表盘</button>
+  </div>
+</div>
+</div>
+
+<!-- UPLOAD MODAL -->
+<div class="modal-overlay" id="upload-modal">
+<div class="modal">
+  <button class="modal-close" onclick="closeUploadModal()">&times;</button>
+  <h3>上传自定义题库</h3>
+  <div class="module-select-row">
+    <label>目标模块：</label>
+    <select id="upload-target">
+      <option value="1">模块一：员工手册</option>
+      <option value="2">模块二：安全生产知识</option>
+    </select>
+  </div>
+  <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleDrop(event)">
+    <input type="file" id="file-input" accept=".xlsx,.xls,.docx,.doc,.csv" onchange="handleFile(this.files[0])">
+    <div class="icon">&#128196;</div>
+    <p>点击上传或拖拽文件到此处</p>
+    <p style="font-size:.78rem;margin-top:4px">支持 .xlsx / .xls / .docx / .csv</p>
+    <div class="filename" id="upload-filename"></div>
+  </div>
+  <div class="format-hint">
+    <strong>Excel 格式要求（每行一题）：</strong><br>
+    A列：题目 &nbsp; B列：选项A &nbsp; C列：选项B &nbsp; D列：选项C &nbsp; E列：选项D &nbsp; F列：正确答案（填 <code>A</code>/<code>B</code>/<code>C</code>/<code>D</code>）<br>
+    第一行为表头（自动跳过），从第二行开始读取题目。<br><br>
+    <strong>Word 格式要求：</strong><br>
+    每道题之间空一行，格式如下：<br>
+    <code>题目文本</code><br>
+    <code>A. 选项一</code><br>
+    <code>B. 选项二</code><br>
+    <code>C. 选项三</code><br>
+    <code>D. 选项四</code><br>
+    <code>答案：B</code>（或 <code>答案:B</code> / <code>Answer: B</code>）
+  </div>
+  <div class="upload-preview" id="upload-preview" style="display:none"></div>
+  <div class="upload-status" id="upload-status"></div>
+  <div class="upload-actions">
+    <button class="btn btn-secondary btn-sm" onclick="closeUploadModal()">取消</button>
+    <button class="btn btn-primary btn-sm" id="btn-confirm-upload" style="width:auto" disabled onclick="confirmUpload()">确认导入</button>
+  </div>
+</div>
+</div>
+
+<!-- CONTENT UPLOAD MODAL -->
+<div class="modal-overlay" id="content-upload-modal">
+<div class="modal">
+  <button class="modal-close" onclick="closeContentUploadModal()">&times;</button>
+  <h3>上传课件自动生成培训模块</h3>
+  <div class="module-select-row">
+    <label>替换模块：</label>
+    <select id="content-upload-target">
+      <option value="1">模块一：供应链概述</option>
+      <option value="2">模块二：海运发货流程</option>
+      <option value="new">新增模块</option>
+    </select>
+  </div>
+  <div class="form-group" id="new-module-name-group" style="display:none;margin-top:8px">
+    <label>新模块名称</label>
+    <input type="text" id="new-module-name" placeholder="例如：模块三：仓储管理">
+  </div>
+  <div class="upload-zone" id="content-upload-zone" onclick="document.getElementById('content-file-input').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleContentDrop(event)">
+    <input type="file" id="content-file-input" accept=".pptx,.docx,.doc" onchange="handleContentFile(this.files[0])">
+    <div class="icon">&#128218;</div>
+    <p>点击上传或拖拽课件文件</p>
+    <p style="font-size:.78rem;margin-top:4px">支持 .pptx / .docx 文件</p>
+    <div class="filename" id="content-upload-filename"></div>
+  </div>
+  <div class="format-hint">
+    <strong>自动分章规则：</strong><br>
+    <strong>PPTX：</strong>按幻灯片标题自动分章（目录页和纯图片页会跳过）<br>
+    <strong>DOCX：</strong>按一级/二级标题（加粗段落）自动分章<br>
+    每个章节内容自动转为培训面板，支持列表、表格等格式。
+  </div>
+  <div class="upload-preview" id="content-upload-preview" style="display:none"></div>
+  <div class="upload-status" id="content-upload-status"></div>
+  <div class="upload-actions">
+    <button class="btn btn-secondary btn-sm" onclick="closeContentUploadModal()">取消</button>
+    <button class="btn btn-primary btn-sm" id="btn-confirm-content-upload" style="width:auto" disabled onclick="confirmContentUpload()">确认生成模块</button>
+  </div>
+</div>
+</div>
+
+<script>
+/* === TRAINING CONTENT DATA === */
+const modules = {
+  1: {
+    title: '模块一：供应链概述',
+    chapters: [
+      {
+        title: '第一章 为什么要做计划',
+        html: `<h4>一、计划是什么</h4>
+<p>计划是在了解了市场与竞争对手后，结合自身供应链情况所做出的销售策略。每一个数字背后所代表的一定是一个个的操作，比如1月销售200件，2月销售400件，从200到400背后一定有原因存在。</p>
+<p>需要思考：是抢占了对手份额还是自然流量上涨带来的增长？对应的策略是什么？如何拿到这部分流量？备货如何满足？</p>
+<p>如果是自然流量上涨但没有实现怎么办？如果是抢占对手份额没有成功怎么办？这些应该在做计划时就有充分思考，而不是随便填写一个数字。</p>
+<h4>二、计划的三个特征</h4>
+<ul>
+<li><strong>1. 所有的预测都是错的，但有个预测要比没有强</strong> — 追求计划的及时性，销售部门有责任定期及时给到销售计划。虽然预测都是错的，但错多错少很关键，比竞争对手错的少意味着综合成本更低。</li>
+<li><strong>2. 预测需要多职能参与，各尽其责</strong> — 计划不是只靠销售部门完成的，需要开发、采购/生产、物控、财务甚至总经理参与，各部门从自身专业出发，集众人之所长制定出准确度最高的计划。</li>
+<li><strong>3. 预测需要循环预测，逐渐逼近</strong> — 每月完成计划制定后并非万事大吉。执行过程中遇到问题导致计划失准时，需要立刻进行计划修正，物控/生产/采购根据新的销售计划通过执行来弥补。</li>
+</ul>`
+      },
+      {
+        title: '第二章 物控的意义',
+        html: `<h4>一、物控做什么？</h4>
+<ul>
+<li><strong>生成需求计划：</strong>合格的销售计划总是非常激进乐观，物控手里有更多数据及较强的数据分析能力，或提供支持，或控制风险，达成机会与风险的平衡点。</li>
+<li><strong>根据需求计划制定发货计划：</strong>根据海运周期变化及各工厂生产周期情况，通过需求计划生成发货计划。</li>
+<li><strong>与工厂沟通排产：</strong>每月或特殊时间点，与工厂沟通未来2-3个月排产生产及发货调整情况。</li>
+<li><strong>追踪监控销售情况：</strong>每日、每周监控销售完成率，及时调整发货和生产。超额完成的增加发货、增加订单、催促工厂加急；完成率远不达标的减少/停止发货、减少订单、通知工厂延缓或暂停。</li>
+<li><strong>适当的产品退出机制：</strong>每季度根据各SKU销售和盈利情况确定产品品级，表现好的升级获得更多供应链支持，表现差的降级或淘汰。</li>
+</ul>
+<h4>二、供应链的三道防线</h4>
+<ul>
+<li><strong>第一道防线 — 准确的计划：</strong>尽力做出最准确的需求计划</li>
+<li><strong>第二道防线 — 安全库存：</strong>所有预测都是错的，所以设立安全库存来应对。重点产品采用3+2备货模式（海外3个月，工厂2个月）</li>
+<li><strong>第三道防线 — 供应链执行：</strong>安全库存无法应对时，最终靠供应链执行能力来应对。达成率200%以上需要全链条加急救火；达成率70%以下则是库存滞销</li>
+</ul>
+<p>当前企业面临的最大挑战是计划能力薄弱，第一和第二道防线设得不好容易失守，太多压力转移给第三道防线，陷入救火模式。</p>`
+      },
+      {
+        title: '第三章 供应链流程案例',
+        html: `<h4>一、销售计划</h4>
+<p>以一款春夏季产品为例，A部门给到物控的年度计划如：1月100件 → 5月650件（旺季峰值）→ 12月90件（淡季）。</p>
+<h4>二、需求计划</h4>
+<p>物控收集A、B、C、D等部门计划后进行整合（可能有相同SKU），根据历史销售数据分析计划合理性，结合SKU品级、产品生命周期、链接状态等综合因素调整计划。</p>
+<h4>三、生产计划</h4>
+<p>最终计划经过多方沟通达成一致后进入生产。以美东海运45天、工厂生产周期60天为例：</p>
+<ul>
+<li>1月销售的300件 → 至少11月8号前发走 → 至少9月8号前开始备料生产</li>
+<li>生产完毕后，开发验货，验货通过后海运部门按发货计划发走</li>
+</ul>
+<h4>四、兵马未动粮草先行</h4>
+<p>采购订单从事业部提交需求 → 采购审批 → 事业部审批 → 开发审批 → 财务审批 → 推送工厂，一般需要7-14个自然日。</p>
+<p><strong>关键点：</strong>销售1月的需求，供应链早在前一年8-9月就要开始准备。春节前后工厂约15天无产能，春夏季产品计划更加重要。</p>
+<h4>五、滚动计划：循环预测，逐渐逼近</h4>
+<ul>
+<li>对照当前销售完成情况判断后续计划是否合理</li>
+<li>确认工厂订单是否满足发货需求</li>
+<li>生产周期越长的产品，供应链链条越长，反应速度越慢</li>
+</ul>
+<h4>六、计划制定注意点</h4>
+<ul>
+<li>没有明显波动不要变更计划，至少控制在上下20%浮动</li>
+<li>超预期销售时要控制完成率（涨价、降广告），及时调整计划</li>
+<li>计划与计划之间要环环相扣，不要做完就抛之脑后</li>
+<li>多变体SKU：品级低的价格要高于爆品变体，相同品级不同变体定价参考库存</li>
+</ul>`
+      },
+      {
+        title: '第四章 产品品级管理',
+        html: `<h4>产品品级分类</h4>
+<ul>
+<li><strong>爆品及以上品级：</strong>类目TOP位置，毛利不会非常高但追求市场份额。备货到发货超额准备，供应链最好资源全部投入，变体最多不超过4个，逐步缩减到3个、2个。</li>
+<li><strong>利润品：</strong>不是类目TOP但也不能太靠后，看重毛利率指标（目前美国市场15%以上）。</li>
+<li><strong>新品：</strong>上线三个月内产品，三个月后与财务、物控定级。销售差则清尾，好则升级为普通品/利润品，升级前不进行返单备货。</li>
+<li><strong>清尾品：</strong>毛利率亏损或月销量低于某值（目前定义为月销低于30或毛利率小于5%）。</li>
+<li><strong>普通品：</strong>以上之外的产品。</li>
+</ul>
+<p>随着公司规模增加，各品级标准会提升。月销30件备货3个月才90件，连工厂MOQ都达不到，必须转向爆品运营模式而非铺货思维。</p>`
+      }
+    ]
+  },
+  2: {
+    title: '模块二：海运发货流程',
+    chapters: [
+      {
+        title: '第一部分 发往海外仓流程',
+        html: `<h4>一、提交发货计划</h4>
+<p>每月20号提交未来滚动五个月销售计划及未来三个月发货计划，由物控人员审核完毕后反馈审核的发货数量，运营部门根据反馈的总数分好发海外仓和官方仓各多少数量，提交至物控。</p>
+<h4>二、物流部排柜</h4>
+<p>物流部根据审核后的发货计划和工厂库存进行排柜发货。</p>
+<h4>三、查看发货进度</h4>
+<p>装柜到仓上架所有进度在<strong>海运在线表</strong>查看（驭长风海运发货跟进记录）。</p>
+<h4>四、查看费用</h4>
+<p>代理出账单后，物流部会将对应柜子费用更新至海运在线表。</p>`
+      },
+      {
+        title: '第二部分 FBA国内直发流程',
+        html: `<h4>一、概述</h4>
+<p>国内直发指从国内工厂直接发货到FBA仓，海运费为一口价，<strong>2CBM起收</strong>，不满2CBM按2CBM收费。主要费用组成：国内提货报关费 + 海运费（单价×体积）+ 税金。</p>
+<h4>二、操作步骤</h4>
+<ul>
+<li><strong>提交发货计划：</strong>与海外仓流程一致</li>
+<li><strong>确认库存：</strong>建货件前跟物流部确认发货SKU库存是否足够</li>
+<li><strong>严格注意：</strong>按照当月审核后的发货计划数创建货件，超出数量物流部会驳回。当月未发产品不延迟到下个月！</li>
+<li><strong>登记直发表：</strong>创建货件后，到亚马逊直发信息登记表填写相关信息</li>
+<li><strong>发送文件：</strong>将对应货件箱唛条码文件发送物流部</li>
+</ul>
+<h4>三、箱唛文件命名规范</h4>
+<ul>
+<li>箱唛格式：热敏打印4×6英寸</li>
+<li>箱唛命名：<code>BOX LABEL-SKU-FBA ID-箱数-FBA地址代称</code></li>
+<li>条码命名：<code>SKU LABEL-SKU</code></li>
+<li>多SKU混合货件需按SKU和货件号自行拆分箱唛和条码文件</li>
+<li>直发货件相关条码文件，运营至少<strong>提前一周</strong>建好给到物流部</li>
+</ul>
+<h4>四、查看发货进度与送仓跟进</h4>
+<ul>
+<li>审核通过后在海运表排柜，运营可根据临柜号/货件号查看进度</li>
+<li>整柜到港送仓：正常时效<strong>7天内</strong></li>
+<li>散货到港送仓：正常时效<strong>7-12天</strong>，需进代理海外仓拆柜打托</li>
+</ul>`
+      },
+      {
+        title: '第三部分 AGL亚马逊物流发货',
+        html: `<h4>一、AGL简介</h4>
+<p>AGL即亚马逊物流（Amazon Global Logistics），区别于第三方货运代理，由亚马逊物流运输货物直接送到亚马逊仓库。<strong>1CBM起收</strong>，不满1CBM按1CBM收费。</p>
+<ul>
+<li><strong>优点：</strong>官方物流有保障，上架时效快于第三方代理，货件不分仓免锁仓费</li>
+<li><strong>缺点：</strong>旺季运力紧张，下舱位慢，时效没保证</li>
+</ul>
+<h4>二、发货前准备</h4>
+<ul>
+<li>申请店铺AGL发货：找供应链部同事</li>
+<li>申请通过后，配置填写发货人及进口商信息</li>
+</ul>
+<h4>三、创建货件步骤</h4>
+<ul>
+<li>发货地选择国内，勾选"我要使用亚马逊跨境物流发货"</li>
+<li>入库配置选项：比较单点入仓和AMP优享入仓的费用，选择更便宜的方案</li>
+<li>选择整箱（40HQ整柜）或拼箱（散货）</li>
+<li>贸易术语选择：工厂交货</li>
+<li>增值服务：供应商在亚马逊集装箱货运站卸货</li>
+<li>付款货币：选择美金</li>
+<li>填写商品描述，选择收发货人，ISF申报全部打勾</li>
+</ul>
+<h4>四、注意事项</h4>
+<ul>
+<li>后台"货好时间"至少多预留<strong>3个工作日</strong>（物流部需安排贴标、提货预约进仓）</li>
+<li>AGL预约需要时间，时间不够会导致逾期，需等待重新排船期</li>
+<li>下单后需找物流部完善SKU合规性</li>
+</ul>`
+      },
+      {
+        title: '第四部分 其他注意事项',
+        html: `<h4>一、电池资料审核</h4>
+<p>带电产品发货前，都需提供对应产品电池资料给物流部，提交代理和船司审核通过后才可安排发货。所需资料：</p>
+<ul>
+<li>MSDS（材料安全数据表）</li>
+<li>UN38.3检测报告</li>
+<li>海运鉴定报告书</li>
+</ul>
+<h4>二、欧洲递延资料</h4>
+<p>发往欧洲的柜子需提供对应店铺的递延资料才能发货：</p>
+<ul>
+<li>进口VAT证书</li>
+<li>进口EORI注册证书</li>
+<li>VAT注册公司的法人ID复印件</li>
+<li>VAT注册公司的营业执照复印件</li>
+<li>过去三个月的完税证明</li>
+<li>进口VAT和平台产品销售链接</li>
+</ul>`
+      }
+    ]
+  }
+};
+
+/* === EXAM DATA === */
+let examData = {
+  1: [
+    {q:'计划的三个特征中，第一个是什么？', opts:['所有预测都是错的但有预测比没有强','预测只需销售部门参与','计划制定后不需要修改','预测越乐观越好'], ans:0},
+    {q:'供应链的三道防线中，第二道防线是？', opts:['准确的计划','安全库存','供应链执行','价格调整'], ans:1},
+    {q:'重点产品的备货模式是什么？', opts:['海外1个月+工厂1个月','海外2个月+工厂3个月','海外3个月+工厂2个月','海外5个月'], ans:2},
+    {q:'物控的核心职能不包括以下哪项？', opts:['生成需求计划','制定发货计划','产品广告投放','产品退出机制'], ans:2},
+    {q:'计划达成率低于多少属于库存滞销？', opts:['90%','80%','70%','60%'], ans:2},
+    {q:'滚动计划中，销售完成率正负多少以内视为无问题？', opts:['10%','15%','20%','30%'], ans:2},
+    {q:'以60天生产周期+45天海运为例，1月销售的货最晚何时发走？', opts:['前一年10月','前一年11月初','前一年12月','当年1月初'], ans:1},
+    {q:'清尾品的标准是？', opts:['月销低于100或毛利率小于10%','月销低于50或毛利率小于8%','月销低于30或毛利率小于5%','月销低于20或毛利率小于3%'], ans:2},
+    {q:'爆品品级的变体数量最多不超过几个？', opts:['2个','3个','4个','6个'], ans:2},
+    {q:'采购订单从提交需求到工厂排产一般需要多少天？', opts:['3-5天','7-14天','15-20天','21-30天'], ans:1}
+  ],
+  2: [
+    {q:'每月几号提交滚动销售计划和发货计划？', opts:['每月1号','每月10号','每月15号','每月20号'], ans:3},
+    {q:'FBA国内直发海运费最低按多少CBM收费？', opts:['1CBM','2CBM','3CBM','5CBM'], ans:1},
+    {q:'AGL亚马逊物流最低按多少CBM收费？', opts:['0.5CBM','1CBM','2CBM','3CBM'], ans:1},
+    {q:'AGL的优点不包括以下哪项？', opts:['官方物流有保障','上架时效快','货件不分仓免锁仓费','旺季运力充足'], ans:3},
+    {q:'直发货件相关条码文件运营至少提前多久给物流部？', opts:['3天','5天','一周','两周'], ans:2},
+    {q:'箱唛打印格式要求是？', opts:['A4纸','热敏打印4×6英寸','热敏打印6×8英寸','A5纸'], ans:1},
+    {q:'整柜到港后送仓正常时效是？', opts:['3天内','5天内','7天内','14天内'], ans:2},
+    {q:'带电产品发货前不需要提供的资料是？', opts:['MSDS','UN38.3检测报告','海运鉴定报告书','产品使用说明书'], ans:3},
+    {q:'AGL创建货件时贸易术语应选择？', opts:['到岸价','到门价','工厂交货','离岸价'], ans:2},
+    {q:'超出当月审核发货计划数创建的货件，物流部会怎样处理？', opts:['正常发货','延迟发货','驳回不发','加收费用'], ans:2}
+  ]
+};
+
+const EXAM_TIME_LIMIT = 1800; // 30 minutes in seconds
+
+/* === STATE MANAGEMENT === */
+let state = {
+  name:'', id:'', dept:'',
+  readChecks: { 1: new Array(4).fill(false), 2: new Array(4).fill(false) },
+  moduleTimers: { 1:0, 2:0 },
+  examScores: { 1:null, 2:null },
+  examAnswers: { 1:{}, 2:{} },
+  currentModule: null,
+  totalSeconds: 0
+};
+let globalTimerInterval = null;
+let moduleTimerInterval = null;
+let examTimerInterval = null;
+let examTimeLeft = 0;
+
+/* === CORE LOGIC === */
+
+// Page navigation
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// Format seconds to HH:MM:SS
+function fmt(s) {
+  const h = String(Math.floor(s/3600)).padStart(2,'0');
+  const m = String(Math.floor((s%3600)/60)).padStart(2,'0');
+  const sec = String(s%60).padStart(2,'0');
+  return `${h}:${m}:${sec}`;
+}
+
+// Login
+function doLogin() {
+  const name = document.getElementById('inp-name').value.trim();
+  const id = document.getElementById('inp-id').value.trim();
+  const dept = document.getElementById('inp-dept').value;
+  if (!name || !id || !dept) { alert('请填写完整信息'); return; }
+  state.name = name; state.id = id; state.dept = dept;
+  document.getElementById('topbar-name').textContent = name;
+  document.getElementById('dash-name').textContent = name;
+  showPage('page-dashboard');
+  renderDashboard();
+  startGlobalTimer();
+}
+
+function doLogout() {
+  if (!confirm('确定退出培训系统？当前进度将丢失。')) return;
+  clearInterval(globalTimerInterval);
+  clearInterval(moduleTimerInterval);
+  clearInterval(examTimerInterval);
+  location.reload();
+}
+
+// Global timer
+function startGlobalTimer() {
+  if (globalTimerInterval) return;
+  globalTimerInterval = setInterval(() => {
+    state.totalSeconds++;
+    document.getElementById('global-timer').textContent = fmt(state.totalSeconds);
+  }, 1000);
+}
+
+// Calculate progress
+function calcProgress() {
+  let totalItems = 0, done = 0;
+  for (const m in modules) {
+    totalItems += state.readChecks[m].length; // chapters
+    if (examData[m] && examData[m].length > 0) totalItems++; // exam
+    done += state.readChecks[m].filter(Boolean).length;
+    if (state.examScores[m] !== null && state.examScores[m] >= 80) done++;
+  }
+  return totalItems > 0 ? Math.round(done / totalItems * 100) : 0;
+}
+
+// Module status helper
+function moduleStatus(m) {
+  const allRead = state.readChecks[m].every(Boolean);
+  const passed = state.examScores[m] !== null && state.examScores[m] >= 80;
+  if (passed) return 'done';
+  const anyRead = state.readChecks[m].some(Boolean);
+  if (anyRead || state.examScores[m] !== null) return 'in-progress';
+  return 'not-started';
+}
+function statusLabel(s) { return {done:'已完成','in-progress':'进行中','not-started':'未开始'}[s]; }
+
+// Render dashboard
+function renderDashboard() {
+  const pct = calcProgress();
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = pct + '%';
+
+  const container = document.getElementById('module-cards');
+  container.innerHTML = '';
+  for (const m in modules) {
+    const mod = modules[m];
+    const s = moduleStatus(m);
+    const readCount = state.readChecks[m].filter(Boolean).length;
+    const total = state.readChecks[m].length;
+    const scoreText = state.examScores[m] !== null ? `考试成绩：${state.examScores[m]}分` : '考试：未参加';
+    const card = document.createElement('div');
+    card.className = 'module-card' + (s === 'done' ? ' completed' : '');
+    card.onclick = () => openModule(m);
+    card.innerHTML = `
+      <h3>${mod.title}</h3>
+      <div class="meta">共${total}章 · 阅读进度 ${readCount}/${total} · ${scoreText}</div>
+      <div class="chapter-list">${mod.chapters.map((c,i) => `${state.readChecks[m][i]?'✓':'○'} ${c.title}`).join('<br>')}</div>
+      <span class="status-badge ${s}">${statusLabel(s)}</span>
+    `;
+    container.appendChild(card);
+  }
+
+  // Show certificate button if all passed
+  const allPassed = state.examScores[1] >= 80 && state.examScores[2] >= 80;
+  document.getElementById('cert-btn-area').style.display = allPassed ? 'block' : 'none';
+}
+
+// Open module content
+function openModule(m) {
+  state.currentModule = m;
+  const mod = modules[m];
+  document.getElementById('module-topbar-title').textContent = mod.title;
+  document.getElementById('module-title').textContent = mod.title;
+  renderAccordion(m);
+  showPage('page-module');
+  startModuleTimer(m);
+}
+
+function backToDash() {
+  clearInterval(moduleTimerInterval); moduleTimerInterval = null;
+  clearInterval(examTimerInterval); examTimerInterval = null;
+  state.currentModule = null;
+  renderDashboard();
+  showPage('page-dashboard');
+}
+
+function startModuleTimer(m) {
+  clearInterval(moduleTimerInterval);
+  document.getElementById('module-timer').textContent = fmt(state.moduleTimers[m]);
+  moduleTimerInterval = setInterval(() => {
+    state.moduleTimers[m]++;
+    document.getElementById('module-timer').textContent = fmt(state.moduleTimers[m]);
+  }, 1000);
+}
+
+// Render accordion
+function renderAccordion(m) {
+  const mod = modules[m];
+  const container = document.getElementById('accordion-container');
+  container.innerHTML = '';
+  mod.chapters.forEach((ch, idx) => {
+    const acc = document.createElement('div');
+    acc.className = 'accordion';
+    acc.setAttribute('data-module', m);
+    acc.setAttribute('data-idx', idx);
+    const isRead = state.readChecks[m][idx];
+    acc.innerHTML = `
+      <div class="accordion-header" onclick="toggleAccordion(this)">
+        <div style="display:flex;align-items:center">
+          <span class="ch-status ${isRead?'read':''}">${isRead?'✓':''}</span>
+          <span>${ch.title}</span>
+        </div>
+        <span class="arrow">▶</span>
+      </div>
+      <div class="accordion-body">
+        <div class="accordion-content">
+          ${ch.html}
+          <div class="read-confirm">
+            <input type="checkbox" id="read-${m}-${idx}" ${isRead?'checked disabled':''} onchange="markRead(${m},${idx},this)">
+            <label for="read-${m}-${idx}">${isRead?'已确认阅读':'我已认真阅读并理解本章内容'}</label>
+          </div>
+        </div>
+      </div>
+    `;
+    container.appendChild(acc);
+  });
+  updateExamBtn(m);
+}
+
+function toggleAccordion(header) {
+  const body = header.nextElementSibling;
+  const isOpen = body.classList.contains('open');
+  // Close all first
+  header.closest('.module-page').querySelectorAll('.accordion-body').forEach(b => b.classList.remove('open'));
+  header.closest('.module-page').querySelectorAll('.accordion-header').forEach(h => h.classList.remove('open'));
+  if (!isOpen) {
+    body.classList.add('open');
+    header.classList.add('open');
+  }
+}
+
+function markRead(m, idx, cb) {
+  state.readChecks[m][idx] = true;
+  cb.disabled = true;
+  cb.parentElement.querySelector('label').textContent = '已确认阅读';
+  // Update status icon
+  const acc = cb.closest('.accordion');
+  const statusEl = acc.querySelector('.ch-status');
+  statusEl.classList.add('read');
+  statusEl.textContent = '✓';
+  updateExamBtn(m);
+}
+
+function updateExamBtn(m) {
+  const allRead = state.readChecks[m].every(Boolean);
+  const btn = document.getElementById('btn-start-exam');
+  btn.disabled = !allRead;
+  if (allRead) {
+    btn.textContent = state.examScores[m] !== null ? '重新考试' : '开始考试';
+  } else {
+    const remain = state.readChecks[m].filter(v => !v).length;
+    btn.textContent = `开始考试（还有${remain}章未阅读）`;
+  }
+}
+
+// Exam
+function startExam() {
+  const m = state.currentModule;
+  clearInterval(moduleTimerInterval); moduleTimerInterval = null;
+  state.examAnswers[m] = {};
+  examTimeLeft = EXAM_TIME_LIMIT;
+  document.getElementById('exam-topbar-title').textContent = modules[m].title + ' — 考试';
+  document.getElementById('exam-title').textContent = modules[m].title + ' 考试';
+  renderExamQuestions(m);
+  showPage('page-exam');
+  startExamTimer(m);
+}
+
+function renderExamQuestions(m) {
+  const container = document.getElementById('exam-questions');
+  container.innerHTML = '';
+  const totalQ = examData[m].length;
+  const perQ = Math.round(100 / totalQ);
+  // Update header info
+  document.querySelector('.exam-header span[style]').textContent = `共${totalQ}题，每题${perQ}分，80分及格`;
+  examData[m].forEach((item, qi) => {
+    const card = document.createElement('div');
+    card.className = 'question-card';
+    card.innerHTML = `
+      <div class="q-num">第 ${qi+1} 题（${perQ}分）</div>
+      <div class="q-text">${item.q}</div>
+      <ul class="option-list">
+        ${item.opts.map((opt, oi) => `
+          <li>
+            <label>
+              <input type="radio" name="q${m}_${qi}" value="${oi}" onchange="state.examAnswers[${m}][${qi}]=${oi}">
+              <span>${String.fromCharCode(65+oi)}. ${opt}</span>
+            </label>
+          </li>
+        `).join('')}
+      </ul>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function startExamTimer(m) {
+  clearInterval(examTimerInterval);
+  const timerEl = document.getElementById('exam-timer');
+  timerEl.classList.remove('warning');
+  function updateTimer() {
+    const min = String(Math.floor(examTimeLeft/60)).padStart(2,'0');
+    const sec = String(examTimeLeft%60).padStart(2,'0');
+    timerEl.textContent = `${min}:${sec}`;
+    if (examTimeLeft <= 300) timerEl.classList.add('warning');
+    if (examTimeLeft <= 0) { clearInterval(examTimerInterval); submitExam(true); }
+    examTimeLeft--;
+  }
+  updateTimer();
+  examTimerInterval = setInterval(updateTimer, 1000);
+}
+
+function submitExam(auto) {
+  clearInterval(examTimerInterval);
+  const m = state.currentModule;
+  const answers = state.examAnswers[m];
+  const totalQ = examData[m].length;
+
+  // Check all answered (unless auto-submit from timeout)
+  if (!auto) {
+    const answered = Object.keys(answers).length;
+    if (answered < totalQ) {
+      if (!confirm(`您还有 ${totalQ - answered} 题未作答，未作答的题目将计0分。确定提交吗？`)) {
+        startExamTimer(m); return;
+      }
+    }
+  }
+
+  let score = 0;
+  const perQ = Math.round(100 / totalQ);
+  examData[m].forEach((item, qi) => {
+    if (answers[qi] === item.ans) score += perQ;
+  });
+  // Ensure perfect score if all correct
+  const correctCount = examData[m].filter((item, qi) => answers[qi] === item.ans).length;
+  if (correctCount === totalQ) score = 100;
+  state.examScores[m] = score;
+  showResult(m, score);
+}
+
+function showResult(m, score) {
+  const pass = score >= 80;
+  const circle = document.getElementById('result-circle');
+  circle.className = 'result-circle ' + (pass ? 'pass' : 'fail');
+  document.getElementById('result-score').textContent = score;
+  document.getElementById('result-msg').innerHTML = pass
+    ? `恭喜您通过了<strong>${modules[m].title}</strong>考试！`
+    : `很遗憾，您未通过<strong>${modules[m].title}</strong>考试（80分及格），请重新学习后再次参加考试。`;
+
+  const btns = document.getElementById('result-btns');
+  btns.innerHTML = `<button class="btn btn-secondary" onclick="backToDash()">返回仪表盘</button>`;
+  if (!pass) {
+    btns.innerHTML += `<button class="btn btn-primary" onclick="openModule(${m})">重新学习</button>`;
+  }
+  showPage('page-result');
+}
+
+// Certificate
+function renderCert() {
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+  const certNo = `YCF-${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${state.id}`;
+  const totalTime = Math.ceil(state.totalSeconds / 60);
+
+  document.getElementById('cert-preview').innerHTML = `
+    <div class="cert-title">培训合格证书</div>
+    <div class="cert-subtitle">TRAINING COMPLETION CERTIFICATE</div>
+    <div class="cert-body">
+      <p>兹证明 <strong>${state.name}</strong>（工号：${state.id}），${state.dept}，于 <strong>${dateStr}</strong> 完成驭长风供应链新员工入职培训全部课程并通过考核，准予结业。</p>
+    </div>
+    <table class="cert-detail-table">
+      <tr><th>培训项目</th><th>考试成绩</th><th>学习时长</th><th>考核结果</th></tr>
+      <tr><td>供应链概述</td><td>${state.examScores[1]}分</td><td>${Math.ceil(state.moduleTimers[1]/60)}分钟</td><td>合格</td></tr>
+      <tr><td>海运发货流程</td><td>${state.examScores[2]}分</td><td>${Math.ceil(state.moduleTimers[2]/60)}分钟</td><td>合格</td></tr>
+      <tr><td><strong>合计</strong></td><td></td><td><strong>${totalTime}分钟</strong></td><td><strong>合格</strong></td></tr>
+    </table>
+    <div class="cert-seal">驭长风<br>供应链<br>培训专用章</div>
+    <div class="cert-signatures">
+      <div class="sig-block"><div class="sig-line"></div>培训负责人签字</div>
+      <div class="sig-block"><div class="sig-line"></div>人力资源部签字</div>
+    </div>
+    <div style="margin-top:16px;font-size:.78rem;color:#999">证书编号：${certNo} · 发证日期：${dateStr}</div>
+  `;
+}
+
+// PDF Export
+function exportPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
+  const W = 297, H = 210;
+
+  // Gold border
+  doc.setDrawColor(201, 168, 76);
+  doc.setLineWidth(1.5);
+  doc.rect(8, 8, W-16, H-16);
+  doc.setLineWidth(0.5);
+  doc.rect(12, 12, W-24, H-24);
+
+  // Title
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(28);
+  doc.setTextColor(26, 60, 110);
+  doc.text('TRAINING COMPLETION CERTIFICATE', W/2, 38, {align:'center'});
+
+  doc.setFontSize(16);
+  doc.setTextColor(100,100,100);
+  doc.text('YuChangFeng Supply Chain Training', W/2, 50, {align:'center'});
+
+  // Body
+  doc.setFontSize(12);
+  doc.setTextColor(50,50,50);
+  const bodyLines = [
+    `Employee: ${state.name}    ID: ${state.id}    Department: ${state.dept}`,
+    '',
+    'Has successfully completed the New Employee Onboarding Training Program',
+    'and passed all required examinations.',
+  ];
+  let y = 70;
+  bodyLines.forEach(line => { doc.text(line, W/2, y, {align:'center'}); y += 8; });
+
+  // Detail table
+  y = 105;
+  doc.setFillColor(26, 60, 110);
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(10);
+  doc.rect(50, y, 197, 8, 'F');
+  doc.text('Module', 55, y+6);
+  doc.text('Score', 150, y+6);
+  doc.text('Duration', 195, y+6);
+  doc.text('Result', 235, y+6);
+
+  doc.setTextColor(50,50,50);
+  y += 8;
+  const rows = [
+    ['Supply Chain Overview', `${state.examScores[1]}`, `${Math.ceil(state.moduleTimers[1]/60)} min`, 'PASS'],
+    ['Shipping Procedures', `${state.examScores[2]}`, `${Math.ceil(state.moduleTimers[2]/60)} min`, 'PASS'],
+  ];
+  rows.forEach(row => {
+    doc.rect(50, y, 197, 8);
+    doc.text(row[0], 55, y+6);
+    doc.text(row[1], 155, y+6);
+    doc.text(row[2], 200, y+6);
+    doc.text(row[3], 237, y+6);
+    y += 8;
+  });
+
+  // Seal circle
+  doc.setDrawColor(192, 57, 43);
+  doc.setLineWidth(0.8);
+  doc.circle(W/2, 155, 14);
+  doc.setFontSize(7);
+  doc.setTextColor(192, 57, 43);
+  doc.text('YUCHANGFENG', W/2, 152, {align:'center'});
+  doc.text('OFFICIAL SEAL', W/2, 157, {align:'center'});
+
+  // Signature lines
+  doc.setDrawColor(100,100,100);
+  doc.setLineWidth(0.3);
+  doc.line(50, 182, 110, 182);
+  doc.line(187, 182, 247, 182);
+  doc.setFontSize(9);
+  doc.setTextColor(100,100,100);
+  doc.text('Training Manager', 80, 188, {align:'center'});
+  doc.text('HR Department', 217, 188, {align:'center'});
+
+  // Certificate number & date
+  const now = new Date();
+  const certNo = `YCF-${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${state.id}`;
+  doc.setFontSize(8);
+  doc.setTextColor(150,150,150);
+  doc.text(`Certificate No: ${certNo}`, 16, H-14);
+  doc.text(`Date: ${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`, W-16, H-14, {align:'right'});
+
+  doc.save(`培训合格证书_${state.name}_${state.id}.pdf`);
+}
+
+// ========== QUESTION BANK UPLOAD ==========
+let pendingQuestions = null;
+
+function openUploadModal() {
+  pendingQuestions = null;
+  document.getElementById('upload-filename').textContent = '';
+  document.getElementById('upload-preview').style.display = 'none';
+  document.getElementById('upload-preview').innerHTML = '';
+  const statusEl = document.getElementById('upload-status');
+  statusEl.className = 'upload-status'; statusEl.textContent = '';
+  document.getElementById('btn-confirm-upload').disabled = true;
+  document.getElementById('file-input').value = '';
+  document.getElementById('upload-modal').classList.add('active');
+}
+
+function closeUploadModal() {
+  document.getElementById('upload-modal').classList.remove('active');
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('dragover');
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+}
+
+function handleFile(file) {
+  if (!file) return;
+  document.getElementById('upload-filename').textContent = file.name;
+  const ext = file.name.split('.').pop().toLowerCase();
+
+  if (ext === 'xlsx' || ext === 'xls' || ext === 'csv') {
+    parseExcel(file);
+  } else if (ext === 'docx' || ext === 'doc') {
+    parseWord(file);
+  } else {
+    showUploadStatus('error', '不支持的文件格式，请上传 .xlsx / .docx / .csv 文件');
+  }
+}
+
+function parseExcel(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws, {header:1});
+
+      // Skip header row, parse questions
+      const questions = [];
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        if (!row || !row[0] || String(row[0]).trim() === '') continue;
+        const q = String(row[0]).trim();
+        const opts = [
+          String(row[1] || '').trim(),
+          String(row[2] || '').trim(),
+          String(row[3] || '').trim(),
+          String(row[4] || '').trim()
+        ];
+        const ansRaw = String(row[5] || '').trim().toUpperCase();
+        const ansMap = {A:0, B:1, C:2, D:3};
+        const ans = ansMap[ansRaw];
+        if (opts.some(o => !o) || ans === undefined) {
+          showUploadStatus('error', `第 ${i+1} 行格式有误：选项不全或答案不是 A/B/C/D`);
+          return;
+        }
+        questions.push({q, opts, ans});
+      }
+
+      if (questions.length === 0) {
+        showUploadStatus('error', '未读取到有效题目，请检查文件格式');
+        return;
+      }
+
+      pendingQuestions = questions;
+      renderUploadPreview(questions);
+      showUploadStatus('success', `成功解析 ${questions.length} 道题目，请确认后导入`);
+      document.getElementById('btn-confirm-upload').disabled = false;
+    } catch(err) {
+      showUploadStatus('error', '文件解析失败：' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseWord(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    mammoth.extractRawText({arrayBuffer: e.target.result}).then(function(result) {
+      try {
+        const text = result.value;
+        const questions = parseWordText(text);
+        if (questions.length === 0) {
+          showUploadStatus('error', '未读取到有效题目，请检查 Word 格式');
+          return;
+        }
+        pendingQuestions = questions;
+        renderUploadPreview(questions);
+        showUploadStatus('success', `成功解析 ${questions.length} 道题目，请确认后导入`);
+        document.getElementById('btn-confirm-upload').disabled = false;
+      } catch(err) {
+        showUploadStatus('error', '解析失败：' + err.message);
+      }
+    }).catch(function(err) {
+      showUploadStatus('error', 'Word 文件读取失败：' + err.message);
+    });
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseWordText(text) {
+  const lines = text.split(/\n/).map(l => l.trim()).filter(l => l);
+  const questions = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    // Find a question: a line that is not an option and not an answer
+    const qLine = lines[i];
+    if (!qLine) { i++; continue; }
+
+    // Check if next lines are options A-D
+    if (i + 5 > lines.length) break;
+    const optA = lines[i+1], optB = lines[i+2], optC = lines[i+3], optD = lines[i+4];
+
+    const optPattern = /^[A-Da-d][.、．:：\s]/;
+    if (optPattern.test(optA) && optPattern.test(optB) && optPattern.test(optC) && optPattern.test(optD)) {
+      // Strip option prefix
+      const stripOpt = s => s.replace(/^[A-Da-d][.、．:：\s]\s*/, '');
+      const opts = [stripOpt(optA), stripOpt(optB), stripOpt(optC), stripOpt(optD)];
+
+      // Look for answer line
+      let ans = -1;
+      const stripQ = qLine.replace(/^[\d]+[.、．:：\s]\s*/, ''); // strip question number prefix
+      if (i + 5 < lines.length) {
+        const ansLine = lines[i+5];
+        const ansMatch = ansLine.match(/(?:答案|answer|正确答案)\s*[：:]\s*([A-Da-d])/i);
+        if (ansMatch) {
+          ans = {A:0,B:1,C:2,D:3}[ansMatch[1].toUpperCase()];
+          i += 6;
+        } else {
+          i += 5; // no answer line found, skip
+          continue;
+        }
+      } else {
+        i += 5;
+        continue;
+      }
+
+      if (ans >= 0) {
+        questions.push({q: stripQ || qLine, opts, ans});
+      }
+    } else {
+      i++;
+    }
+  }
+  return questions;
+}
+
+function renderUploadPreview(questions) {
+  const container = document.getElementById('upload-preview');
+  let html = '<table><tr><th>#</th><th>题目</th><th>A</th><th>B</th><th>C</th><th>D</th><th>答案</th></tr>';
+  questions.forEach((q, i) => {
+    const ansLetter = String.fromCharCode(65 + q.ans);
+    const shortQ = q.q.length > 30 ? q.q.slice(0,30) + '...' : q.q;
+    const shortOpts = q.opts.map(o => o.length > 12 ? o.slice(0,12) + '..' : o);
+    html += `<tr><td>${i+1}</td><td title="${q.q}">${shortQ}</td><td>${shortOpts[0]}</td><td>${shortOpts[1]}</td><td>${shortOpts[2]}</td><td>${shortOpts[3]}</td><td><strong>${ansLetter}</strong></td></tr>`;
+  });
+  html += '</table>';
+  container.innerHTML = html;
+  container.style.display = 'block';
+}
+
+function showUploadStatus(type, msg) {
+  const el = document.getElementById('upload-status');
+  el.className = 'upload-status ' + type;
+  el.textContent = msg;
+}
+
+function confirmUpload() {
+  if (!pendingQuestions || pendingQuestions.length === 0) return;
+  const m = parseInt(document.getElementById('upload-target').value);
+  examData[m] = pendingQuestions;
+
+  // Reset exam state for this module since questions changed
+  state.examScores[m] = null;
+  state.examAnswers[m] = {};
+
+  closeUploadModal();
+  renderDashboard();
+  alert(`模块${m === 1 ? '一' : '二'}题库已更新，共 ${pendingQuestions.length} 道题目。\n每题 ${Math.round(100/pendingQuestions.length)} 分，总分100分。`);
+}
+
+// ========== CONTENT UPLOAD (Course Material → Module) ==========
+let pendingChapters = null;
+
+// Toggle new module name field
+document.getElementById('content-upload-target').addEventListener('change', function() {
+  document.getElementById('new-module-name-group').style.display = this.value === 'new' ? 'block' : 'none';
+});
+
+function openContentUploadModal() {
+  pendingChapters = null;
+  document.getElementById('content-upload-filename').textContent = '';
+  document.getElementById('content-upload-preview').style.display = 'none';
+  document.getElementById('content-upload-preview').innerHTML = '';
+  const s = document.getElementById('content-upload-status');
+  s.className = 'upload-status'; s.textContent = '';
+  document.getElementById('btn-confirm-content-upload').disabled = true;
+  document.getElementById('content-file-input').value = '';
+  // Update target options dynamically
+  const sel = document.getElementById('content-upload-target');
+  sel.innerHTML = '';
+  for (const m in modules) {
+    const opt = document.createElement('option');
+    opt.value = m; opt.textContent = modules[m].title;
+    sel.appendChild(opt);
+  }
+  const newOpt = document.createElement('option');
+  newOpt.value = 'new'; newOpt.textContent = '+ 新增模块';
+  sel.appendChild(newOpt);
+  document.getElementById('new-module-name-group').style.display = 'none';
+  document.getElementById('content-upload-modal').classList.add('active');
+}
+
+function closeContentUploadModal() {
+  document.getElementById('content-upload-modal').classList.remove('active');
+}
+
+function handleContentDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('dragover');
+  if (e.dataTransfer.files.length) handleContentFile(e.dataTransfer.files[0]);
+}
+
+function handleContentFile(file) {
+  if (!file) return;
+  document.getElementById('content-upload-filename').textContent = file.name;
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (ext === 'docx') {
+    parseContentDocx(file);
+  } else if (ext === 'pptx') {
+    parseContentPptx(file);
+  } else {
+    showContentStatus('error', '请上传 .pptx 或 .docx 文件');
+  }
+}
+
+function parseContentDocx(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    mammoth.convertToHtml({arrayBuffer: e.target.result}).then(function(result) {
+      try {
+        const html = result.value;
+        const chapters = splitDocxToChapters(html);
+        if (chapters.length === 0) {
+          showContentStatus('error', '未能从文档中提取到有效章节，请检查文件是否有标题结构');
+          return;
+        }
+        pendingChapters = chapters;
+        renderContentPreview(chapters);
+        showContentStatus('success', `成功提取 ${chapters.length} 个章节，请确认后生成模块`);
+        document.getElementById('btn-confirm-content-upload').disabled = false;
+      } catch(err) {
+        showContentStatus('error', '解析失败：' + err.message);
+      }
+    });
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function splitDocxToChapters(html) {
+  const container = document.createElement('div');
+  container.innerHTML = html;
+  const chapters = [];
+  let currentTitle = null;
+  let currentContent = [];
+
+  function flush() {
+    if (currentTitle && currentContent.length > 0) {
+      chapters.push({ title: currentTitle, html: currentContent.join('') });
+    }
+  }
+
+  for (const node of container.children) {
+    const tag = node.tagName;
+    // Detect headings or bold-only paragraphs as chapter breaks
+    const isBoldParagraph = tag === 'P' && node.querySelector('strong') && node.textContent.trim().length < 80 && node.textContent.trim().length > 0 && node.innerHTML.replace(/<strong>|<\/strong>/g,'').replace(/<[^>]+>/g,'').trim() === '';
+    const isHeading = /^H[1-3]$/.test(tag);
+
+    if (isHeading || isBoldParagraph) {
+      flush();
+      currentTitle = node.textContent.trim();
+      currentContent = [];
+    } else if (currentTitle) {
+      currentContent.push(node.outerHTML);
+    } else if (!currentTitle && chapters.length === 0) {
+      // Content before any heading — use filename or first text as title
+      if (node.textContent.trim()) {
+        currentTitle = node.textContent.trim().slice(0, 50);
+        currentContent = [];
+      }
+    }
+  }
+  flush();
+
+  // If no chapters found, treat entire doc as one chapter
+  if (chapters.length === 0 && container.innerHTML.trim()) {
+    chapters.push({ title: '培训内容', html: container.innerHTML });
+  }
+  return chapters;
+}
+
+function parseContentPptx(file) {
+  // PPTX client-side: use JSZip to extract slide XML, then parse text
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const zip = new XLSX.utils; // SheetJS can't parse PPTX, use JSZip approach
+      // Actually, we'll use a simpler approach: convert to text blocks per slide
+      parseContentPptxFromZip(e.target.result);
+    } catch(err) {
+      showContentStatus('error', 'PPTX解析失败：' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseContentPptxFromZip(arrayBuffer) {
+  // Use mammoth-like approach: parse PPTX as zip, extract slide XMLs
+  // Since we already have JSZip via SheetJS internals, let's use a lightweight parser
+  // For PPTX, we parse the raw XML from the zip to extract text per slide
+  const uint8 = new Uint8Array(arrayBuffer);
+
+  // Lightweight zip parser for PPTX
+  const files = {};
+  try {
+    // Use XLSX's zip reader
+    const wb = XLSX.read(arrayBuffer, {type:'array', bookSheets:true});
+    // This won't work for PPTX. Fall back to manual XML extraction
+    throw new Error('not xlsx');
+  } catch(e) {
+    // Parse zip manually to find slide XMLs
+    parsePptxManual(uint8);
+  }
+}
+
+function parsePptxManual(uint8) {
+  // Simple approach: use the text content extraction similar to mammoth
+  // Since we have mammoth loaded, try using it for PPTX (it won't work)
+  // Best approach: convert PPTX text using a simple zip+XML parser
+
+  // Use JSZip if available, otherwise fall back
+  // Actually, let's use a simpler approach: treat PPTX upload as docx-like
+  // and ask user to save as docx, OR use a fetch to re-process
+
+  // For now, use a lightweight in-browser PPTX text extractor
+  const slides = extractPptxSlides(uint8);
+  if (slides.length === 0) {
+    showContentStatus('error', 'PPTX解析失败，建议将课件另存为 .docx 格式后上传');
+    return;
+  }
+
+  const chapters = [];
+  let currentChapter = null;
+  let currentContent = [];
+
+  for (const slide of slides) {
+    if (!slide.text.trim()) continue;
+    const lines = slide.text.split('\n').filter(l => l.trim());
+    if (lines.length === 0) continue;
+
+    // First line of slide is usually a title
+    const title = lines[0].trim();
+    const body = lines.slice(1);
+
+    // Skip TOC/section divider slides (very short content)
+    if (body.length === 0 && title.length < 30) {
+      // Could be a section divider, start new chapter group
+      if (currentChapter) {
+        chapters.push({ title: currentChapter, html: currentContent.join('') });
+        currentContent = [];
+      }
+      currentChapter = title;
+      continue;
+    }
+
+    if (!currentChapter) currentChapter = title;
+
+    // Build HTML from body
+    let html = `<h4>${title}</h4>`;
+    for (const line of body) {
+      if (/^\d+[.、]/.test(line.trim()) || /^[•·\-]/.test(line.trim())) {
+        html += `<li>${line.trim().replace(/^[\d+.、•·\-]\s*/, '')}</li>`;
+      } else {
+        html += `<p>${line.trim()}</p>`;
+      }
+    }
+    // Wrap consecutive li items in ul
+    html = html.replace(/(<li>.*?<\/li>)+/gs, match => `<ul>${match}</ul>`);
+    currentContent.push(html);
+  }
+
+  if (currentChapter && currentContent.length > 0) {
+    chapters.push({ title: currentChapter, html: currentContent.join('') });
+  }
+
+  if (chapters.length === 0) {
+    showContentStatus('error', 'PPTX解析失败，建议将课件另存为 .docx 格式后上传');
+    return;
+  }
+
+  pendingChapters = chapters;
+  renderContentPreview(chapters);
+  showContentStatus('success', `成功提取 ${chapters.length} 个章节，请确认后生成模块`);
+  document.getElementById('btn-confirm-content-upload').disabled = false;
+}
+
+function extractPptxSlides(uint8) {
+  // Minimal zip parser + XML text extractor for PPTX
+  const slides = [];
+  try {
+    const zip = parseZip(uint8);
+    // Find slide files (ppt/slides/slide1.xml, slide2.xml, ...)
+    const slideFiles = Object.keys(zip)
+      .filter(k => /^ppt\/slides\/slide\d+\.xml$/i.test(k))
+      .sort((a,b) => {
+        const na = parseInt(a.match(/slide(\d+)/)[1]);
+        const nb = parseInt(b.match(/slide(\d+)/)[1]);
+        return na - nb;
+      });
+
+    for (const sf of slideFiles) {
+      const xml = new TextDecoder().decode(zip[sf]);
+      // Extract all text from <a:t> tags
+      const texts = [];
+      const regex = /<a:t[^>]*>([\s\S]*?)<\/a:t>/g;
+      let match;
+      while ((match = regex.exec(xml)) !== null) {
+        texts.push(match[1].replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"'));
+      }
+      // Group by paragraph <a:p>
+      const paragraphs = [];
+      const pRegex = /<a:p\b[\s\S]*?<\/a:p>/g;
+      let pMatch;
+      while ((pMatch = pRegex.exec(xml)) !== null) {
+        const pTexts = [];
+        const tRegex = /<a:t[^>]*>([\s\S]*?)<\/a:t>/g;
+        let tMatch;
+        while ((tMatch = tRegex.exec(pMatch[0])) !== null) {
+          pTexts.push(tMatch[1].replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>'));
+        }
+        if (pTexts.join('').trim()) paragraphs.push(pTexts.join(''));
+      }
+      slides.push({ text: paragraphs.join('\n') });
+    }
+  } catch(e) {
+    console.error('PPTX parse error:', e);
+  }
+  return slides;
+}
+
+function parseZip(uint8) {
+  // Minimal ZIP parser — extracts file entries as Uint8Arrays
+  const files = {};
+  const view = new DataView(uint8.buffer, uint8.byteOffset, uint8.byteLength);
+  let offset = 0;
+
+  while (offset < uint8.length - 4) {
+    const sig = view.getUint32(offset, true);
+    if (sig !== 0x04034b50) break; // Local file header signature
+
+    const compressionMethod = view.getUint16(offset + 8, true);
+    const compressedSize = view.getUint32(offset + 18, true);
+    const uncompressedSize = view.getUint32(offset + 22, true);
+    const fileNameLength = view.getUint16(offset + 26, true);
+    const extraFieldLength = view.getUint16(offset + 28, true);
+    const fileName = new TextDecoder().decode(uint8.slice(offset + 30, offset + 30 + fileNameLength));
+    const dataStart = offset + 30 + fileNameLength + extraFieldLength;
+    const rawData = uint8.slice(dataStart, dataStart + compressedSize);
+
+    if (compressionMethod === 0) {
+      // Stored (no compression)
+      files[fileName] = rawData;
+    } else if (compressionMethod === 8) {
+      // Deflate — use DecompressionStream if available
+      try {
+        const ds = new DecompressionStream('raw');
+        const writer = ds.writable.getWriter();
+        const reader = ds.readable.getReader();
+        const chunks = [];
+        let done = false;
+
+        // Synchronous approach won't work with streams, store raw for now
+        // Fall back: try to decode as-is or skip
+        files[fileName] = rawData; // placeholder
+      } catch(e) {
+        files[fileName] = rawData;
+      }
+    }
+
+    offset = dataStart + compressedSize;
+  }
+
+  // For deflate files, decompress asynchronously
+  return files;
+}
+
+// Async PPTX extraction with proper decompression
+async function handleContentFileAsync(file) {
+  document.getElementById('content-upload-filename').textContent = file.name;
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (ext === 'docx') {
+    parseContentDocx(file);
+  } else if (ext === 'pptx') {
+    showContentStatus('success', '正在解析PPTX文件...');
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const slides = await extractPptxSlidesAsync(arrayBuffer);
+      if (slides.length === 0) {
+        showContentStatus('error', 'PPTX解析未提取到内容，建议另存为 .docx 后上传');
+        return;
+      }
+      const chapters = buildChaptersFromSlides(slides);
+      if (chapters.length === 0) {
+        showContentStatus('error', '未能生成有效章节');
+        return;
+      }
+      pendingChapters = chapters;
+      renderContentPreview(chapters);
+      showContentStatus('success', `成功提取 ${chapters.length} 个章节，请确认后生成模块`);
+      document.getElementById('btn-confirm-content-upload').disabled = false;
+    } catch(err) {
+      showContentStatus('error', 'PPTX解析失败：' + err.message);
+    }
+  } else {
+    showContentStatus('error', '请上传 .pptx 或 .docx 文件');
+  }
+}
+
+async function extractPptxSlidesAsync(arrayBuffer) {
+  const uint8 = new Uint8Array(arrayBuffer);
+  const entries = parseZipEntries(uint8);
+  const slides = [];
+
+  // Find and sort slide files
+  const slideKeys = Object.keys(entries)
+    .filter(k => /^ppt\/slides\/slide\d+\.xml$/i.test(k))
+    .sort((a,b) => parseInt(a.match(/(\d+)/)[1]) - parseInt(b.match(/(\d+)/)[1]));
+
+  for (const key of slideKeys) {
+    const entry = entries[key];
+    let xmlBytes;
+    if (entry.method === 0) {
+      xmlBytes = entry.data;
+    } else {
+      // Deflate decompression
+      xmlBytes = await decompressDeflate(entry.data);
+    }
+    const xml = new TextDecoder().decode(xmlBytes);
+    // Extract paragraphs
+    const paragraphs = [];
+    const pRegex = /<a:p\b[\s\S]*?<\/a:p>/g;
+    let pMatch;
+    while ((pMatch = pRegex.exec(xml)) !== null) {
+      const tTexts = [];
+      const tRegex = /<a:t[^>]*>([\s\S]*?)<\/a:t>/g;
+      let tMatch;
+      while ((tMatch = tRegex.exec(pMatch[0])) !== null) {
+        tTexts.push(tMatch[1].replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"'));
+      }
+      if (tTexts.join('').trim()) paragraphs.push(tTexts.join(''));
+    }
+    slides.push(paragraphs);
+  }
+  return slides;
+}
+
+function parseZipEntries(uint8) {
+  const entries = {};
+  const view = new DataView(uint8.buffer, uint8.byteOffset, uint8.byteLength);
+  let offset = 0;
+  while (offset < uint8.length - 4) {
+    if (view.getUint32(offset, true) !== 0x04034b50) break;
+    const method = view.getUint16(offset + 8, true);
+    const compSize = view.getUint32(offset + 18, true);
+    const fnLen = view.getUint16(offset + 26, true);
+    const exLen = view.getUint16(offset + 28, true);
+    const name = new TextDecoder().decode(uint8.slice(offset + 30, offset + 30 + fnLen));
+    const dataStart = offset + 30 + fnLen + exLen;
+    entries[name] = { method, data: uint8.slice(dataStart, dataStart + compSize) };
+    offset = dataStart + compSize;
+  }
+  return entries;
+}
+
+async function decompressDeflate(data) {
+  const ds = new DecompressionStream('raw');
+  const writer = ds.writable.getWriter();
+  const reader = ds.readable.getReader();
+  writer.write(data);
+  writer.close();
+  const chunks = [];
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+  }
+  const total = chunks.reduce((s, c) => s + c.length, 0);
+  const result = new Uint8Array(total);
+  let pos = 0;
+  for (const c of chunks) { result.set(c, pos); pos += c.length; }
+  return result;
+}
+
+function buildChaptersFromSlides(slides) {
+  const chapters = [];
+  let currentTitle = null;
+  let currentHtml = [];
+
+  for (const paras of slides) {
+    if (paras.length === 0) continue;
+    const title = paras[0];
+    const body = paras.slice(1);
+
+    // Section divider: short title, no body
+    if (body.length === 0 && title.length < 40) {
+      if (currentTitle && currentHtml.length > 0) {
+        chapters.push({ title: currentTitle, html: currentHtml.join('') });
+        currentHtml = [];
+      }
+      currentTitle = title;
+      continue;
+    }
+    if (!currentTitle) currentTitle = title;
+
+    let html = `<h4>${title}</h4>`;
+    let inList = false;
+    for (const line of body) {
+      const trimmed = line.trim();
+      if (/^\d+[.、．]/.test(trimmed) || /^[•·\-\*]/.test(trimmed) || /^（?\d+）/.test(trimmed)) {
+        if (!inList) { html += '<ul>'; inList = true; }
+        html += `<li>${trimmed.replace(/^[\d.、．•·\-\*]+\s*/, '').replace(/^（?\d+）\s*/, '')}</li>`;
+      } else {
+        if (inList) { html += '</ul>'; inList = false; }
+        html += `<p>${trimmed}</p>`;
+      }
+    }
+    if (inList) html += '</ul>';
+    currentHtml.push(html);
+  }
+
+  if (currentTitle && currentHtml.length > 0) {
+    chapters.push({ title: currentTitle, html: currentHtml.join('') });
+  }
+  return chapters;
+}
+
+function renderContentPreview(chapters) {
+  const container = document.getElementById('content-upload-preview');
+  let html = '<table><tr><th>#</th><th>章节标题</th><th>内容预览</th></tr>';
+  chapters.forEach((ch, i) => {
+    const preview = ch.html.replace(/<[^>]+>/g, '').slice(0, 60) + '...';
+    html += `<tr><td>${i+1}</td><td>${ch.title}</td><td style="color:#666">${preview}</td></tr>`;
+  });
+  html += '</table>';
+  container.innerHTML = html;
+  container.style.display = 'block';
+}
+
+function showContentStatus(type, msg) {
+  const el = document.getElementById('content-upload-status');
+  el.className = 'upload-status ' + type;
+  el.textContent = msg;
+}
+
+function confirmContentUpload() {
+  if (!pendingChapters || pendingChapters.length === 0) return;
+  const targetVal = document.getElementById('content-upload-target').value;
+  let m;
+
+  if (targetVal === 'new') {
+    const name = document.getElementById('new-module-name').value.trim();
+    if (!name) { alert('请输入新模块名称'); return; }
+    // Find next module ID
+    m = Math.max(...Object.keys(modules).map(Number)) + 1;
+    modules[m] = { title: name, chapters: pendingChapters };
+    examData[m] = []; // Empty exam, user can upload separately
+    state.readChecks[m] = new Array(pendingChapters.length).fill(false);
+    state.moduleTimers[m] = 0;
+    state.examScores[m] = null;
+    state.examAnswers[m] = {};
+  } else {
+    m = parseInt(targetVal);
+    modules[m].chapters = pendingChapters;
+    state.readChecks[m] = new Array(pendingChapters.length).fill(false);
+    state.examScores[m] = null;
+    state.examAnswers[m] = {};
+  }
+
+  // Update upload-target options for exam upload modal too
+  const examSel = document.getElementById('upload-target');
+  examSel.innerHTML = '';
+  for (const key in modules) {
+    const opt = document.createElement('option');
+    opt.value = key; opt.textContent = modules[key].title;
+    examSel.appendChild(opt);
+  }
+
+  closeContentUploadModal();
+  renderDashboard();
+  alert(`${modules[m].title} 已生成，共 ${pendingChapters.length} 个章节。${examData[m].length === 0 ? '\n提示：该模块暂无考试题目，请通过"上传自定义题库"添加。' : ''}`);
+}
+
+// Override file input handler for PPTX to use async version
+document.getElementById('content-file-input').onchange = function() {
+  const file = this.files[0];
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (ext === 'pptx') {
+    handleContentFileAsync(file);
+  } else {
+    handleContentFile(file);
+  }
+};
+</script>
+</body>
+</html>
