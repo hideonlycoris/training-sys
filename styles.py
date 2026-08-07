@@ -613,7 +613,10 @@ section[data-testid="stSidebar"] .stButton > button[data-checked="true"] {
 
 def inject_brand_css():
     """Inject brand CSS into Streamlit page"""
-    st.markdown(BRAND_CSS, unsafe_allow_html=True)
+    import streamlit.components.v1 as components
+    # Extract CSS content between style tags
+    css_content = BRAND_CSS.replace('<style>', '').replace('</style>', '').strip()
+    components.html(f"<style>{css_content}</style>", height=0)
 
 
 def render_brand_bar(display_name: str, department: str, emp_id: str = ""):
