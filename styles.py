@@ -1,6 +1,11 @@
 """
 Training System Brand CSS Styles
 """
+import streamlit.components.v1 as components
+
+def _render_html(html_content: str, height: int = None):
+    """Helper to render HTML via components.html for Streamlit Cloud compatibility"""
+    components.html(html_content, height=height or 100, scrolling=True)
 
 BRAND_CSS = """
 <style>
@@ -18,19 +23,13 @@ BRAND_CSS = """
   --radius: 12px;
   --shadow: 0 4px 20px rgba(0,0,0,.08);
 }
-
-
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
 header {visibility: hidden;}
-
-
 .stApp {
   font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--bg);
 }
-
-
 .brand-bar {
   background: linear-gradient(135deg, #0f2647 0%, #1a3c6e 60%, #2a5ca8 100%);
   color: #fff;
@@ -99,14 +98,12 @@ header {visibility: hidden;}
 }
 .brand-bar .dept-badge {
   background: rgba(201,168,76,.2);
-  color: var(--accent);
+  color: #c9a84c;
   padding: 4px 12px;
   border-radius: 12px;
   font-size: .75rem;
   font-weight: 600;
 }
-
-
 .login-wrapper {
   min-height: 100vh;
   display: flex;
@@ -174,25 +171,6 @@ header {visibility: hidden;}
   font-size: .85rem;
   color: var(--text-light);
 }
-.login-card .stTextInput > div > div > input {
-  border: 2px solid #e0e4ea;
-  border-radius: 10px;
-  padding: 12px 16px;
-  font-size: .95rem;
-  background: #fafbfc;
-  transition: border .2s, box-shadow .2s;
-}
-.login-card .stTextInput > div > div > input:focus {
-  border-color: var(--primary-light);
-  box-shadow: 0 0 0 3px rgba(42,92,168,.1);
-  background: #fff;
-}
-.login-card .stSelectbox > div > div {
-  border: 2px solid #e0e4ea;
-  border-radius: 10px;
-}
-
-
 .dashboard-header {
   margin-bottom: 24px;
 }
@@ -206,8 +184,6 @@ header {visibility: hidden;}
   color: var(--text-light);
   font-size: .9rem;
 }
-
-
 .progress-section {
   background: var(--card);
   border-radius: var(--radius);
@@ -235,8 +211,6 @@ header {visibility: hidden;}
   text-align: right;
   margin-top: 4px;
 }
-
-
 .module-card {
   background: var(--card);
   border-radius: var(--radius);
@@ -271,8 +245,6 @@ header {visibility: hidden;}
 .module-card .meta span {
   margin-right: 16px;
 }
-
-
 .status-badge {
   display: inline-block;
   padding: 4px 14px;
@@ -292,8 +264,6 @@ header {visibility: hidden;}
   background: #d4edda;
   color: #155724;
 }
-
-
 .module-content-header {
   margin-bottom: 24px;
 }
@@ -302,17 +272,6 @@ header {visibility: hidden;}
   color: var(--primary);
   font-weight: 700;
 }
-
-
-.chapter-accordion {
-  background: var(--card);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  margin-bottom: 12px;
-  overflow: hidden;
-}
-
-
 .exam-header-bar {
   display: flex;
   justify-content: space-between;
@@ -335,6 +294,7 @@ header {visibility: hidden;}
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   box-shadow: 0 4px 12px rgba(231,76,60,.3);
+  text-align: center;
 }
 .exam-timer.warning {
   animation: pulse 1s infinite;
@@ -343,7 +303,6 @@ header {visibility: hidden;}
   0%, 100% { opacity: 1; }
   50% { opacity: .6; }
 }
-
 .question-card {
   background: var(--card);
   border-radius: var(--radius);
@@ -377,29 +336,6 @@ header {visibility: hidden;}
 .q-type-badge.single { background: #e3f2fd; color: #1565c0; }
 .q-type-badge.multi { background: #f3e5f5; color: #7b1fa2; }
 .q-type-badge.short { background: #e8f5e9; color: #2e7d32; }
-
-
-.stRadio > div {
-  gap: 8px !important;
-}
-.stRadio > div > label {
-  padding: 10px 16px;
-  border: 2px solid #e8ebf0;
-  border-radius: 10px;
-  transition: all .15s;
-  font-size: .9rem;
-}
-.stRadio > div > label:hover {
-  border-color: var(--primary-light);
-  background: #f6f8fc;
-}
-.stRadio > div > label[data-checked="true"],
-.stRadio > div > label:has(input:checked) {
-  border-color: var(--primary);
-  background: #eef3fb;
-}
-
-
 .result-container {
   text-align: center;
   padding: 40px 20px;
@@ -429,8 +365,6 @@ header {visibility: hidden;}
   font-size: .8rem;
   font-weight: 400;
 }
-
-
 .cert-preview {
   background: #fffef7;
   border: 3px solid var(--accent);
@@ -507,8 +441,6 @@ header {visibility: hidden;}
   line-height: 1.3;
   text-align: center;
 }
-
-
 section[data-testid="stSidebar"] {
   background: linear-gradient(180deg, #0f2647 0%, #1a3c6e 100%);
 }
@@ -529,14 +461,6 @@ section[data-testid="stSidebar"] .stButton > button:hover {
   background: rgba(255,255,255,.2);
   border-color: rgba(201,168,76,.4);
 }
-section[data-testid="stSidebar"] .stButton > button:active,
-section[data-testid="stSidebar"] .stButton > button[data-checked="true"] {
-  background: rgba(201,168,76,.2);
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-
 .stButton > button {
   border-radius: 10px;
   font-weight: 600;
@@ -554,8 +478,6 @@ section[data-testid="stSidebar"] .stButton > button[data-checked="true"] {
   background: linear-gradient(135deg, var(--primary-light), #3a6cb8);
   box-shadow: 0 6px 20px rgba(26,60,110,.3);
 }
-
-
 .stTextInput > div > div > input,
 .stTextArea > div > div > textarea {
   border-radius: 10px;
@@ -567,45 +489,9 @@ section[data-testid="stSidebar"] .stButton > button[data-checked="true"] {
   border-color: var(--primary-light);
   box-shadow: 0 0 0 3px rgba(42,92,168,.1);
 }
-
-
-.streamlit-expanderHeader {
-  font-weight: 600 !important;
-  border-radius: 10px !important;
-}
-.streamlit-expanderContent {
-  border-radius: 0 0 10px 10px !important;
-}
-
-
-.stDataFrame {
-  border-radius: var(--radius);
-  overflow: hidden;
-  box-shadow: var(--shadow);
-}
-
-
-@media (max-width: 768px) {
-  .brand-bar {
-    padding: 12px 16px;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .login-card {
-    padding: 32px 24px;
-  }
-  .cert-preview {
-    padding: 28px 16px;
-  }
-}
-
-
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
-}
-.stApp > div {
-  animation: fadeIn .4s ease;
 }
 </style>
 """
@@ -613,17 +499,15 @@ section[data-testid="stSidebar"] .stButton > button[data-checked="true"] {
 
 def inject_brand_css():
     """Inject brand CSS into Streamlit page"""
-    import streamlit.components.v1 as components
-    # Extract CSS content between style tags
     css_content = BRAND_CSS.replace('<style>', '').replace('</style>', '').strip()
-    components.html(f"<style>{css_content}</style>", height=0)
+    _render_html(f"<style>{css_content}</style>", height=0)
 
 
 def render_brand_bar(display_name: str, department: str, emp_id: str = ""):
-    """渲染顶部品牌栏"""
+    """Render top brand bar"""
     dept_html = f'<span class="dept-badge">{department}</span>' if department else ""
-    emp_html = f' | 工号: {emp_id}' if emp_id else ""
-    st.markdown(f"""
+    emp_html = f' | ID: {emp_id}' if emp_id else ""
+    _render_html(f"""
 <div class="brand-bar">
   <div class="brand-left">
     <div class="brand-icon">📦</div>
@@ -637,12 +521,12 @@ def render_brand_bar(display_name: str, department: str, emp_id: str = ""):
     <span class="user-chip">👤 {display_name}{emp_html}</span>
   </div>
 </div>
-""", unsafe_allow_html=True)
+""", height=80)
 
 
 def render_login_page():
-    """渲染登录页完整布局"""
-    st.markdown("""
+    """Render login page layout"""
+    _render_html("""
 <div class="login-wrapper">
   <div class="login-card">
     <div class="logo-area">
@@ -652,12 +536,12 @@ def render_login_page():
     </div>
   </div>
 </div>
-""", unsafe_allow_html=True)
+""", height=600)
 
 
 def render_progress_bar(pct: int, label: str = "总进度"):
-    """渲染品牌化进度条"""
-    st.markdown(f"""
+    """Render branded progress bar"""
+    _render_html(f"""
 <div class="progress-section">
   <div style="display:flex;justify-content:space-between;align-items:baseline">
     <strong>{label}</strong>
@@ -667,12 +551,12 @@ def render_progress_bar(pct: int, label: str = "总进度"):
     <div class="progress-inner" style="width:{pct}%"></div>
   </div>
 </div>
-""", unsafe_allow_html=True)
+""", height=100)
 
 
 def render_module_card(title: str, status: str, chapters_info: str, exam_info: str,
                        time_info: str, module_id: int):
-    """渲染模块卡片"""
+    """Render module card"""
     status_class = {
         "已完成": "done",
         "进行中": "in-progress",
@@ -685,7 +569,7 @@ def render_module_card(title: str, status: str, chapters_info: str, exam_info: s
         "未开始": ""
     }.get(status, "")
 
-    st.markdown(f"""
+    _render_html(f"""
 <div class="module-card {card_class}">
   <h3>{title}</h3>
   <span class="status-badge {status_class}">{status}</span>
@@ -695,62 +579,63 @@ def render_module_card(title: str, status: str, chapters_info: str, exam_info: s
     <span>⏱️ {time_info}</span>
   </div>
 </div>
-""", unsafe_allow_html=True)
+""", height=120)
 
 
 def render_exam_timer(minutes: int, seconds: int, is_warning: bool = False):
-    """渲染考试倒计时"""
+    """Render exam countdown timer"""
     warning_class = " warning" if is_warning else ""
-    st.markdown(f"""
+    _render_html(f"""
 <div class="exam-timer{warning_class}">
   ⏱️ {minutes:02d}:{seconds:02d}
 </div>
-""", unsafe_allow_html=True)
+""", height=60)
 
 
 def render_question_card(number: int, question: str, q_type: str, per_q: int):
-    """渲染题目卡片"""
+    """Render question card"""
     type_labels = {"single": "单选", "multi": "多选", "short": "简答"}
     type_classes = {"single": "single", "multi": "multi", "short": "short"}
     label = type_labels.get(q_type, "")
     css_class = type_classes.get(q_type, "single")
 
-    st.markdown(f"""
+    _render_html(f"""
 <div class="question-card">
   <div class="q-number">第 {number} 题 <span class="q-type-badge {css_class}">{label}</span> · {per_q}分</div>
   <div class="q-text">{question}</div>
 </div>
-""", unsafe_allow_html=True)
+""", height=100)
 
 
 def render_result_circle(score: int, passed: bool):
-    """渲染成绩圆圈"""
+    """Render score circle"""
     circle_class = "pass" if passed else "fail"
     label = "通过" if passed else "未通过"
-    st.markdown(f"""
+    _render_html(f"""
 <div class="result-container">
   <div class="result-circle {circle_class}">
     {score}
     <small>{label}</small>
   </div>
 </div>
-""", unsafe_allow_html=True)
+""", height=220)
 
 
 def render_certificate_preview(name: str, emp_id: str, dept: str,
                                 module_scores: list, date_str: str):
-    """渲染证书预览"""
+    """Render certificate preview"""
     rows_html = ""
     for mod_name, score, mins in module_scores:
+        result = '✅ 通过' if score >= 80 else '❌ 未通过'
         rows_html += f"""
         <tr>
           <td>{mod_name}</td>
           <td style="text-align:center">{score}分</td>
           <td style="text-align:center">{mins}分钟</td>
-          <td style="text-align:center">{'✅ 通过' if score >= 80 else '❌ 未通过'}</td>
+          <td style="text-align:center">{result}</td>
         </tr>"""
 
-    st.markdown(f"""
+    _render_html(f"""
 <div class="cert-preview">
   <div class="cert-title">培 训 合 格 证 书</div>
   <div class="cert-subtitle">TRAINING COMPLETION CERTIFICATE</div>
@@ -784,4 +669,4 @@ def render_certificate_preview(name: str, emp_id: str, dept: str,
   </div>
   <p style="margin-top:20px;font-size:.8rem;color:#999">证书编号: YCF-{date_str}-{emp_id} | 签发日期: {date_str}</p>
 </div>
-""", unsafe_allow_html=True)
+""", height=600)
