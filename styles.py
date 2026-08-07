@@ -1,11 +1,9 @@
 """
-驭长风供应链培训系统 — 品牌化 CSS 样式
-基于 training-system.html 设计稿移植到 Streamlit
+Training System Brand CSS Styles
 """
 
 BRAND_CSS = """
 <style>
-/* ==================== 全局变量 ==================== */
 :root {
   --primary: #1a3c6e;
   --primary-light: #2a5ca8;
@@ -21,18 +19,18 @@ BRAND_CSS = """
   --shadow: 0 4px 20px rgba(0,0,0,.08);
 }
 
-/* ==================== 隐藏 Streamlit 默认元素 ==================== */
+
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
 header {visibility: hidden;}
 
-/* ==================== 全局字体 ==================== */
+
 .stApp {
   font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--bg);
 }
 
-/* ==================== 顶部品牌栏 ==================== */
+
 .brand-bar {
   background: linear-gradient(135deg, #0f2647 0%, #1a3c6e 60%, #2a5ca8 100%);
   color: #fff;
@@ -108,7 +106,7 @@ header {visibility: hidden;}
   font-weight: 600;
 }
 
-/* ==================== 登录页 ==================== */
+
 .login-wrapper {
   min-height: 100vh;
   display: flex;
@@ -194,7 +192,7 @@ header {visibility: hidden;}
   border-radius: 10px;
 }
 
-/* ==================== 仪表盘 ==================== */
+
 .dashboard-header {
   margin-bottom: 24px;
 }
@@ -209,7 +207,7 @@ header {visibility: hidden;}
   font-size: .9rem;
 }
 
-/* 进度条 */
+
 .progress-section {
   background: var(--card);
   border-radius: var(--radius);
@@ -238,7 +236,7 @@ header {visibility: hidden;}
   margin-top: 4px;
 }
 
-/* 模块卡片 */
+
 .module-card {
   background: var(--card);
   border-radius: var(--radius);
@@ -274,7 +272,7 @@ header {visibility: hidden;}
   margin-right: 16px;
 }
 
-/* 状态标签 */
+
 .status-badge {
   display: inline-block;
   padding: 4px 14px;
@@ -295,7 +293,7 @@ header {visibility: hidden;}
   color: #155724;
 }
 
-/* ==================== 模块内容页 ==================== */
+
 .module-content-header {
   margin-bottom: 24px;
 }
@@ -305,7 +303,7 @@ header {visibility: hidden;}
   font-weight: 700;
 }
 
-/* 章节折叠面板 */
+
 .chapter-accordion {
   background: var(--card);
   border-radius: var(--radius);
@@ -314,7 +312,7 @@ header {visibility: hidden;}
   overflow: hidden;
 }
 
-/* ==================== 考试页 ==================== */
+
 .exam-header-bar {
   display: flex;
   justify-content: space-between;
@@ -380,7 +378,7 @@ header {visibility: hidden;}
 .q-type-badge.multi { background: #f3e5f5; color: #7b1fa2; }
 .q-type-badge.short { background: #e8f5e9; color: #2e7d32; }
 
-/* 选项样式 */
+
 .stRadio > div {
   gap: 8px !important;
 }
@@ -401,7 +399,7 @@ header {visibility: hidden;}
   background: #eef3fb;
 }
 
-/* ==================== 结果页 ==================== */
+
 .result-container {
   text-align: center;
   padding: 40px 20px;
@@ -432,7 +430,7 @@ header {visibility: hidden;}
   font-weight: 400;
 }
 
-/* ==================== 证书页 ==================== */
+
 .cert-preview {
   background: #fffef7;
   border: 3px solid var(--accent);
@@ -510,7 +508,7 @@ header {visibility: hidden;}
   text-align: center;
 }
 
-/* ==================== 侧边栏美化 ==================== */
+
 section[data-testid="stSidebar"] {
   background: linear-gradient(180deg, #0f2647 0%, #1a3c6e 100%);
 }
@@ -538,7 +536,7 @@ section[data-testid="stSidebar"] .stButton > button[data-checked="true"] {
   color: var(--accent);
 }
 
-/* ==================== 按钮美化 ==================== */
+
 .stButton > button {
   border-radius: 10px;
   font-weight: 600;
@@ -557,7 +555,7 @@ section[data-testid="stSidebar"] .stButton > button[data-checked="true"] {
   box-shadow: 0 6px 20px rgba(26,60,110,.3);
 }
 
-/* ==================== 输入框美化 ==================== */
+
 .stTextInput > div > div > input,
 .stTextArea > div > div > textarea {
   border-radius: 10px;
@@ -570,7 +568,7 @@ section[data-testid="stSidebar"] .stButton > button[data-checked="true"] {
   box-shadow: 0 0 0 3px rgba(42,92,168,.1);
 }
 
-/* ==================== Expander 美化 ==================== */
+
 .streamlit-expanderHeader {
   font-weight: 600 !important;
   border-radius: 10px !important;
@@ -579,14 +577,14 @@ section[data-testid="stSidebar"] .stButton > button[data-checked="true"] {
   border-radius: 0 0 10px 10px !important;
 }
 
-/* ==================== 表格美化 ==================== */
+
 .stDataFrame {
   border-radius: var(--radius);
   overflow: hidden;
   box-shadow: var(--shadow);
 }
 
-/* ==================== 响应式 ==================== */
+
 @media (max-width: 768px) {
   .brand-bar {
     padding: 12px 16px;
@@ -601,7 +599,7 @@ section[data-testid="stSidebar"] .stButton > button[data-checked="true"] {
   }
 }
 
-/* ==================== 动画 ==================== */
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
@@ -614,7 +612,7 @@ section[data-testid="stSidebar"] .stButton > button[data-checked="true"] {
 
 
 def inject_brand_css():
-    """注入品牌化 CSS 到 Streamlit 页面"""
+    """Inject brand CSS into Streamlit page"""
     st.markdown(BRAND_CSS, unsafe_allow_html=True)
 
 
