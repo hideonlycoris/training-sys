@@ -13,7 +13,10 @@ from pathlib import Path
 import mammoth
 import openpyxl
 from pptx import Presentation
-from styles import inject_global_css, render_login, render_dashboard_header, render_stats_card, render_progress_card, render_module_card_v2, render_exam_timer_v2, render_question_v2, render_result_v2, render_certificate_v2
+from styles import inject_global_css
+from styles import render_login, render_dashboard_header
+from styles import render_stats_card, render_progress_card, render_module_card_v2
+from styles import render_exam_timer_v2, render_question_v2, render_result_v2, render_certificate_v2
 
 # --- 云端适配：移除 Windows COM 依赖，云端不支持 Office 自动转 PDF ---
 
