@@ -1,5 +1,6 @@
 """
 驭长风供应链 — 新员工培训系统 (Streamlit)
+Premium Enterprise Edition
 Features: account management, training modules, exams, PDF certificates, course upload, analytics
 """
 
