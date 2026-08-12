@@ -13,7 +13,7 @@ from pathlib import Path
 import mammoth
 import openpyxl
 from pptx import Presentation
-from styles import inject_brand_css, render_brand_bar, render_login_page, render_progress_bar, render_module_card, render_exam_timer, render_question_card, render_result_circle, render_certificate_preview
+from styles import inject_global_css, render_login, render_dashboard_header, render_stats_card, render_progress_card, render_module_card_v2, render_exam_timer_v2, render_question_v2, render_result_v2, render_certificate_v2
 
 # --- 云端适配：移除 Windows COM 依赖，云端不支持 Office 自动转 PDF ---
 
@@ -679,48 +679,38 @@ def delete_exam_questions_db(mid):
 
 # --------------- PAGE: LOGIN ---------------
 def page_login():
-    # 渐变背景容器
-    st.markdown("""
-<div class="login-wrapper">
-  <div class="login-card">
-    <div class="logo-area">
-      <div class="company-icon">📦</div>
-      <h1>驭长风供应链</h1>
-      <p>新员工入职培训系统</p>
-    </div>
-  </div>
-</div>
-""", unsafe_allow_html=True)
+    # Premium login background
+    render_login()
 
-    # 将表单放在卡片区域内（通过 Streamlit 布局）
+    # Form card centered
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.markdown("<div style='margin-top:-180px'></div>", unsafe_allow_html=True)
-        tab_login, tab_reg = st.tabs(["🔑 登录", "📝 注册"])
+        st.markdown("<div style='margin-top:-300px'></div>", unsafe_allow_html=True)
+        tab_login, tab_reg = st.tabs(["🔑 Login", "📝 Register"])
         with tab_login:
-            username = st.text_input("用户名", key="login_user", placeholder="请输入用户名")
-            password = st.text_input("密码", type="password", key="login_pw", placeholder="请输入密码")
-            if st.button("登 录", type="primary", use_container_width=True):
+            username = st.text_input("Username", key="login_user", placeholder="Enter username")
+            password = st.text_input("Password", type="password", key="login_pw", placeholder="Enter password")
+            if st.button("Sign In", type="primary", use_container_width=True):
                 user = authenticate(username, password)
                 if user:
                     st.session_state.user = user
                     st.session_state.page = "dashboard"
                     st.rerun()
                 else:
-                    st.error("用户名或密码错误")
+                    st.error("Invalid username or password")
         with tab_reg:
-            new_user = st.text_input("用户名", key="reg_user", placeholder="设置用户名")
-            new_pw = st.text_input("密码", type="password", key="reg_pw", placeholder="设置密码")
-            new_name = st.text_input("姓名", key="reg_name", placeholder="真实姓名")
-            new_emp = st.text_input("工号", key="reg_emp", placeholder="员工工号")
-            new_dept = st.selectbox("部门", DEPARTMENTS, key="reg_dept")
-            if st.button("注 册", use_container_width=True):
+            new_user = st.text_input("Username", key="reg_user", placeholder="Set username")
+            new_pw = st.text_input("Password", type="password", key="reg_pw", placeholder="Set password")
+            new_name = st.text_input("Full Name", key="reg_name", placeholder="Your name")
+            new_emp = st.text_input("Employee ID", key="reg_emp", placeholder="Employee ID")
+            new_dept = st.selectbox("Department", DEPARTMENTS, key="reg_dept")
+            if st.button("Create Account", use_container_width=True):
                 if not new_user or not new_pw or not new_name:
-                    st.warning("请填写必填项")
+                    st.warning("Please fill in all required fields")
                 elif create_user(new_user, new_pw, new_name, new_emp, new_dept):
-                    st.success("注册成功，请登录")
+                    st.success("Account created! Please sign in.")
                 else:
-                    st.error("用户名已存在")
+                    st.error("Username already exists")
 
 # --------------- PAGE: ADMIN ---------------
 def page_admin():
@@ -765,17 +755,30 @@ def page_dashboard():
     modules = get_modules()
     exams = get_exams()
 
-    # 品牌化仪表盘头部
-    st.markdown(f"""
-<div class="dashboard-header">
-  <h2>📊 培训仪表盘</h2>
-  <p>欢迎回来，<strong>{user['display_name']}</strong>！请依次完成以下培训模块。</p>
-</div>
-""", unsafe_allow_html=True)
+    # Premium dashboard header
+    render_dashboard_header(user['display_name'], user.get('department',''), user.get('emp_id',''))
 
-    # 计算总进度
+    # Calculate stats
     exam_modules = sum(1 for e in exams.values() if e.get("questions"))
-    total_items = sum(len(m["chapters"]) for m in modules.values()) + exam_modules
+    total_chapters = sum(len(m["chapters"]) for m in modules.values())
+    total_modules = len(modules)
+    total_exams = exam_modules
+
+    # Stats cards row
+    st.markdown("<div style='height:24px'></div>", unsafe_allow_html=True)
+    cols = st.columns(4)
+    with cols[0]:
+        render_stats_card("📚", "TOTAL MODULES", str(total_modules), "#1a3c6e")
+    with cols[1]:
+        render_stats_card("📖", "CHAPTERS", str(total_chapters), "#2a5ca8")
+    with cols[2]:
+        render_stats_card("📝", "EXAMS", str(total_exams), "#c9a84c")
+    with cols[3]:
+        render_stats_card("⏱", "HOURS", "12+", "#059669")
+
+    st.markdown("<div style='height:32px'></div>", unsafe_allow_html=True)
+
+    # Progress card
     completed = 0
     for mid, mod in modules.items():
         checks = get_read_checks(user["id"], mid, len(mod["chapters"]))
@@ -783,49 +786,59 @@ def page_dashboard():
         best = get_best_exam(user["id"], mid)
         if best is not None and best >= 80:
             completed += 1
-    pct = int(completed / total_items * 100) if total_items else 0
+    pct = int(completed / (total_chapters + exam_modules) * 100) if (total_chapters + exam_modules) else 0
+    render_progress_card(pct)
 
-    # 品牌化进度条
-    render_progress_bar(pct, "总体培训进度")
+    st.markdown("<div style='height:32px'></div>", unsafe_allow_html=True)
 
-    # 模块卡片网格
-    num_cols = min(len(modules), 2)
-    cols = st.columns(num_cols)
-    for i, (mid, mod) in enumerate(modules.items()):
-        col = cols[i % num_cols]
-        with col:
-            checks = get_read_checks(user["id"], mid, len(mod["chapters"]))
-            read_done = sum(checks)
-            total_ch = len(mod["chapters"])
-            best = get_best_exam(user["id"], mid)
-            t = get_training_time(user["id"], mid)
+    # Section header
+    st.markdown("""
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+  <div>
+    <h2 style="font-size:1.25rem;font-weight:700;color:#0f172a;margin:0">Training Modules</h2>
+    <p style="color:#64748b;font-size:.9rem;margin:4px 0 0">Complete all modules to receive certification</p>
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
-            status = "已完成" if (read_done == total_ch and best is not None and best >= 80) else ("进行中" if read_done > 0 else "未开始")
-            score_str = f"{best}分" if best is not None else "--"
+    # Module cards
+    for mid, mod in modules.items():
+        checks = get_read_checks(user["id"], mid, len(mod["chapters"]))
+        read_done = sum(checks)
+        total_ch = len(mod["chapters"])
+        best = get_best_exam(user["id"], mid)
+        t = get_training_time(user["id"], mid)
 
-            # 渲染品牌化卡片
-            render_module_card(
-                title=mod["title"],
-                status=status,
-                chapters_info=f"章节 {read_done}/{total_ch}",
-                exam_info=f"考试 {score_str}",
-                time_info=f"时长 {fmt_time(t)}",
-                module_id=mid
-            )
+        status = "已完成" if (read_done == total_ch and best is not None and best >= 80) else ("进行中" if read_done > 0 else "未开始")
+        is_completed = status == "已完成"
 
-            # 操作按钮
-            c1, c2 = st.columns(2)
-            if c1.button("📖 进入学习", key=f"learn_{mid}", use_container_width=True):
+        render_module_card_v2(
+            title=mod["title"],
+            status=status,
+            chapters=f"{read_done}/{total_ch}",
+            exam=f"{best if best is not None else '--'}",
+            duration=fmt_time(t),
+            module_id=mid,
+            is_completed=is_completed
+        )
+
+        # Action buttons
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("📖 Start Learning", key=f"learn_{mid}", use_container_width=True):
                 st.session_state.page = "module"
                 st.session_state.current_module = mid
                 st.rerun()
-            if c2.button("📝 参加考试", key=f"exam_{mid}", use_container_width=True):
+        with c2:
+            if st.button("📝 Take Exam", key=f"exam_{mid}", use_container_width=True):
                 st.session_state.page = "exam"
                 st.session_state.current_module = mid
                 st.session_state.exam_started = False
                 st.rerun()
 
-    # 证书按钮
+        st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+
+    # Certificate button
     all_pass = all(
         (get_best_exam(user["id"], mid) or 0) >= 80
         for mid, e in exams.items() if e.get("questions")
@@ -835,13 +848,8 @@ def page_dashboard():
         for mid in modules
     )
     if all_pass and all_read:
-        st.markdown("---")
-        st.markdown("""
-<div style="text-align:center;padding:20px 0">
-  <p style="color:#27ae60;font-size:1.1rem;font-weight:600;margin-bottom:12px">🎉 恭喜！您已完成全部培训课程</p>
-</div>
-""", unsafe_allow_html=True)
-        if st.button("🎓 查看培训合格证书", type="primary", use_container_width=True):
+        st.markdown("<div style='height:32px'></div>", unsafe_allow_html=True)
+        if st.button("🎓 Get Your Certificate", type="primary", use_container_width=True):
             st.session_state.page = "certificate"
             st.rerun()
 
@@ -986,50 +994,61 @@ def page_exam():
     all_questions = exam_data.get("questions", []) if isinstance(exam_data, dict) else exam_data
     exam_count = exam_data.get("exam_count", 0) if isinstance(exam_data, dict) else 0
 
-    # 品牌化考试头部
-    st.markdown(f"""
-<div class="exam-header-bar">
-  <div>
-    <h2>📝 {mod['title']} — 在线考试</h2>
-  </div>
-  <div>
-    <a href="#" onclick="window.history.back(); return false;" style="color:#666;text-decoration:none;font-size:.85rem">← 返回仪表盘</a>
-  </div>
-</div>
-""", unsafe_allow_html=True)
-
-    if st.button("← 返回仪表盘", key="exam_back"):
+    # Back button
+    if st.button("← Back to Dashboard", key="exam_back"):
         st.session_state.page = "dashboard"
         st.rerun()
 
+    # Module title
+    st.markdown(f"""
+<div style="margin-bottom:24px">
+  <h1 style="font-size:1.5rem;font-weight:700;color:#0f172a;margin:0">{mod['title']}</h1>
+  <p style="color:#64748b;font-size:.9rem;margin:4px 0 0">Online Examination</p>
+</div>
+""", unsafe_allow_html=True)
+
     if not all_questions:
-        st.warning("本模块暂无考试题目")
+        st.warning("No questions available for this module")
         return
 
     checks = get_read_checks(user["id"], mid, len(mod["chapters"]))
     if not all(checks):
-        st.warning("⚠️ 请先完成所有章节的阅读确认后再参加考试")
+        st.warning("Please complete all chapter readings before taking the exam")
         return
 
     best = get_best_exam(user["id"], mid)
     if best is not None:
-        st.info(f"📊 历史最高分: {best}分 {'(已通过 ✅)' if best >= 80 else ''}")
+        st.info(f"Best score: {best}/100 {'(Passed)' if best >= 80 else ''}")
 
     EXAM_DURATION = 30 * 60
     actual_count = exam_count if (exam_count > 0 and exam_count < len(all_questions)) else len(all_questions)
 
     if not st.session_state.get("exam_started"):
-        # 考试说明卡片
         st.markdown(f"""
-<div class="question-card" style="border-left-color:var(--primary)">
-  <div class="q-number">考试说明</div>
-  <div class="q-text">
-    题库共 <strong>{len(all_questions)}</strong> 题，本次考试随机抽取 <strong>{actual_count}</strong> 题<br>
-    每题 <strong>{round(100/actual_count)}</strong> 分，<strong>80分</strong>及格，限时 <strong>30分钟</strong>
+<div style="background:#fff;border-radius:16px;padding:32px;border:1px solid #e2e8f0;margin-bottom:24px">
+  <h3 style="font-size:1.1rem;font-weight:600;color:#0f172a;margin-bottom:16px">Exam Details</h3>
+  <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px">
+    <div style="padding:16px;background:#f8fafc;border-radius:10px">
+      <div style="font-size:.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Questions</div>
+      <div style="font-size:1.5rem;font-weight:700;color:#0f172a">{actual_count}</div>
+    </div>
+    <div style="padding:16px;background:#f8fafc;border-radius:10px">
+      <div style="font-size:.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Passing Score</div>
+      <div style="font-size:1.5rem;font-weight:700;color:#0f172a">80/100</div>
+    </div>
+    <div style="padding:16px;background:#f8fafc;border-radius:10px">
+      <div style="font-size:.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Time Limit</div>
+      <div style="font-size:1.5rem;font-weight:700;color:#0f172a">30 min</div>
+    </div>
+    <div style="padding:16px;background:#f8fafc;border-radius:10px">
+      <div style="font-size:.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Points Each</div>
+      <div style="font-size:1.5rem;font-weight:700;color:#0f172a">{round(100/actual_count)}</div>
+    </div>
   </div>
 </div>
 """, unsafe_allow_html=True)
-        if st.button("🚀 开始考试", type="primary", use_container_width=True):
+
+        if st.button("Start Exam", type="primary", use_container_width=True):
             if actual_count < len(all_questions):
                 selected = random.sample(all_questions, actual_count)
             else:
@@ -1047,23 +1066,25 @@ def page_exam():
     remaining = max(0, EXAM_DURATION - elapsed)
     rm, rs = divmod(int(remaining), 60)
 
-    # 渲染品牌化倒计时
-    is_warning = remaining <= 300  # 最后5分钟警告
-    render_exam_timer(rm, rs, is_warning)
+    # Timer
+    is_warning = remaining <= 300
+    render_exam_timer_v2(rm, rs, is_warning)
 
     if remaining <= 0:
-        st.error("⏰ 考试时间已到，自动提交")
+        st.error("Time's up! Auto-submitting...")
         _submit_exam(user, mid, questions)
         return
 
     per_q = round(100 / len(questions))
     answers = st.session_state.get("exam_answers", {})
 
+    st.markdown("<div style='height:24px'></div>", unsafe_allow_html=True)
+
     for qi, item in enumerate(questions):
         qtype = item.get("type", "single")
 
-        # 渲染品牌化题目卡片
-        render_question_card(qi + 1, item["q"], qtype, per_q)
+        # Render question card
+        render_question_v2(qi + 1, item["q"], qtype, per_q, len(questions))
 
         if qtype == "single":
             sel = st.radio(
@@ -1085,15 +1106,15 @@ def page_exam():
             answers[qi] = sorted(selected)
         elif qtype == "short":
             prev = answers.get(qi, "")
-            txt = st.text_area("请输入答案", value=prev, key=f"eq_{mid}_{qi}", height=100,
-                              placeholder="请输入您的答案...")
+            txt = st.text_area("Enter your answer", value=prev, key=f"eq_{mid}_{qi}", height=100,
+                              placeholder="Type your answer here...")
             answers[qi] = txt
 
     st.session_state.exam_answers = answers
 
-    # 提交按钮
-    st.markdown("<div style='text-align:center;margin-top:24px'>", unsafe_allow_html=True)
-    if st.button("📋 提交考试", type="primary", use_container_width=True):
+    # Submit button
+    st.markdown("<div style='height:32px'></div>", unsafe_allow_html=True)
+    if st.button("Submit Exam", type="primary", use_container_width=True):
         unanswered = 0
         for qi, item in enumerate(questions):
             qtype = item.get("type", "single")
@@ -1101,10 +1122,9 @@ def page_exam():
             if a is None or (qtype == "multi" and len(a) == 0) or (qtype == "short" and not str(a).strip()):
                 unanswered += 1
         if unanswered > 0:
-            st.warning(f"⚠️ 还有 {unanswered} 题未作答，请检查后再提交")
+            st.warning(f"{unanswered} questions unanswered. Please check before submitting.")
         else:
             _submit_exam(user, mid, questions)
-    st.markdown("</div>", unsafe_allow_html=True)
 
 def _submit_exam(user, mid, questions):
     answers = st.session_state.get("exam_answers", {})
@@ -1162,53 +1182,43 @@ def page_result():
     passed = score >= 80
     details = st.session_state.get("last_details", [])
 
-    # 品牌化成绩展示
-    render_result_circle(score, passed)
+    # Render result
+    render_result_v2(score, passed, mod['title'])
 
-    if passed:
-        st.markdown(f"""
-<div style="text-align:center;margin-bottom:24px">
-  <h3 style="color:#27ae60">🎉 恭喜通过考试！</h3>
-  <p style="color:#666">{mod['title']} — 得分 {score}/100</p>
-</div>
-""", unsafe_allow_html=True)
-    else:
-        st.markdown(f"""
-<div style="text-align:center;margin-bottom:24px">
-  <h3 style="color:#e74c3c">😔 未通过考试</h3>
-  <p style="color:#666">{mod['title']} — 得分 {score}/100（及格线: 80分）</p>
-</div>
-""", unsafe_allow_html=True)
-
+    # Details section
     if details:
-        with st.expander("📝 查看逐题解析与判分详情", expanded=True):
+        st.markdown("<div style='height:32px'></div>", unsafe_allow_html=True)
+        with st.expander("📝 Detailed Review", expanded=True):
             for i, d in enumerate(details):
                 icon = "✅" if d["earned"] == d["max"] else ("⚠️" if d["earned"] > 0 else "❌")
-                type_label = {"single": "单选", "multi": "多选", "short": "简答"}.get(d["type"], "")
+                type_label = {"single": "Single", "multi": "Multi", "short": "Short"}.get(d["type"], "")
 
                 st.markdown(f"**{icon} {i+1}. [{type_label}] {d['q']}**")
 
                 if d['type'] == "short":
-                    st.markdown(f"> **你的回答**: {d.get('user_ans', '未作答')}")
-                    st.markdown(f"> **标准答案**: {d['correct']}")
-                    st.markdown(f"**得分**: {d['earned']}/{d['max']} 分")
+                    st.markdown(f"> **Your Answer**: {d.get('user_ans', 'No answer')}")
+                    st.markdown(f"> **Reference**: {d['correct']}")
+                    st.markdown(f"**Score**: {d['earned']}/{d['max']}")
                     if d.get("ai_reason"):
                         st.info(d["ai_reason"])
                 else:
-                    st.markdown(f"**得分**: {d['earned']}/{d['max']} 分")
+                    st.markdown(f"**Score**: {d['earned']}/{d['max']}")
 
                 st.divider()
 
-    # 操作按钮
+    # Action buttons
+    st.markdown("<div style='height:32px'></div>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
-    if c1.button("📊 返回仪表盘", use_container_width=True):
-        st.session_state.page = "dashboard"
-        st.rerun()
-    if not passed:
-        if c2.button("🔄 重新考试", type="primary", use_container_width=True):
-            st.session_state.page = "exam"
-            st.session_state.exam_started = False
+    with c1:
+        if st.button("📊 Dashboard", use_container_width=True):
+            st.session_state.page = "dashboard"
             st.rerun()
+    with c2:
+        if not passed:
+            if st.button("🔄 Retake Exam", type="primary", use_container_width=True):
+                st.session_state.page = "exam"
+                st.session_state.exam_started = False
+                st.rerun()
 
 # --------------- PAGE: CERTIFICATE ---------------
 def page_certificate():
@@ -1223,20 +1233,20 @@ def page_certificate():
 
     date_str = datetime.now().strftime('%Y-%m-%d')
 
-    # 渲染品牌化证书预览
-    render_certificate_preview(
+    # Render certificate
+    render_certificate_v2(
         name=user["display_name"],
         emp_id=user.get("emp_id", ""),
         dept=user.get("department", ""),
-        module_scores=module_scores,
-        date_str=date_str
+        modules=module_scores,
+        date=date_str
     )
 
-    # 下载按钮
-    st.markdown("<div style='text-align:center;margin-top:24px'>", unsafe_allow_html=True)
+    # Download button
+    st.markdown("<div style='height:32px'></div>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("📥 下载PDF证书", type="primary", use_container_width=True):
+        if st.button("📥 Download PDF", type="primary", use_container_width=True):
             pdf_bytes = generate_certificate_pdf(
                 user["display_name"],
                 user.get("emp_id", ""),
@@ -1245,17 +1255,16 @@ def page_certificate():
                 {},
             )
             st.download_button(
-                "点击下载",
+                "Download",
                 data=pdf_bytes,
                 file_name=f"certificate_{user.get('emp_id','')}.pdf",
                 mime="application/pdf",
                 use_container_width=True,
             )
     with c2:
-        if st.button("📊 返回仪表盘", use_container_width=True):
+        if st.button("📊 Dashboard", use_container_width=True):
             st.session_state.page = "dashboard"
             st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
 
 # --------------- PAGE: UPLOAD COURSE ---------------
 def page_upload_course():
@@ -1683,7 +1692,7 @@ def page_analytics():
 # --------------- SIDEBAR & MAIN ---------------
 def main():
     st.set_page_config(page_title="驭长风供应链培训系统", page_icon="📦", layout="wide")
-    inject_brand_css()
+    inject_global_css()
     init_db()
 
     if "page" not in st.session_state:
