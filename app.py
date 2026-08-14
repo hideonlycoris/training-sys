@@ -1062,78 +1062,42 @@ def page_upload_course():
                         pass
                 elif ext in ("pptx", "ppt"):
                     try:
-                        from PIL import Image, ImageDraw, ImageFont
                         prs = Presentation(io.BytesIO(file_bytes))
-                        slide_images = []
-
-                        # 查找支持中文的字体
-                        def get_cjk_font(size):
-                            font_paths = [
-                                "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
-                                "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-                                "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
-                                "/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc",
-                                "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
-                                "/usr/share/fonts/wqy-zenhei/wqy-zenhei.ttc",
-                                "C:/Windows/Fonts/msyh.ttc",
-                                "C:/Windows/Fonts/simsun.ttc",
-                            ]
-                            for fp in font_paths:
-                                if os.path.exists(fp):
-                                    return ImageFont.truetype(fp, size)
-                            return ImageFont.load_default()
-
-                        font_title = get_cjk_font(32)
-                        font_body = get_cjk_font(24)
-                        font_small = get_cjk_font(18)
-
-                        # 为每页 PPT 生成图片并上传
-                        for slide_idx, slide in enumerate(prs.slides):
-                            img = Image.new('RGB', (1280, 720), color=(255, 255, 255))
-                            draw = ImageDraw.Draw(img)
-
-                            y_offset = 40
+                        all_html = ""
+                        slide_count = 0
+                        for slide in prs.slides:
+                            slide_count += 1
+                            slide_html = f'<div style="margin-bottom:24px;padding:20px;background:#f8fafc;border-radius:12px;border-left:4px solid #1a3c6e;">'
+                            slide_html += f'<div style="font-size:0.8rem;color:#94a3b8;margin-bottom:8px;">第 {slide_count} 页</div>'
+                            has_content = False
                             for shape in slide.shapes:
                                 if shape.has_text_frame:
                                     for para in shape.text_frame.paragraphs:
                                         text = para.text.strip()
                                         if text:
-                                            # 检测是否为标题（粗体或大字号）
                                             is_title = para.font.bold if para.font else False
-                                            font = font_title if is_title else font_body
-                                            draw.text((60, y_offset), text, fill=(30, 30, 30), font=font)
-                                            y_offset += 45 if is_title else 35
+                                            if is_title:
+                                                slide_html += f'<h3 style="color:#0f172a;margin:8px 0;">{text}</h3>'
+                                            else:
+                                                slide_html += f'<p style="color:#334155;margin:4px 0;">{text}</p>'
+                                            has_content = True
                                 elif shape.has_table:
                                     table = shape.table
-                                    for row in table.rows:
-                                        row_text = " | ".join(cell.text.strip() for cell in row.cells)
-                                        if row_text.strip():
-                                            draw.text((60, y_offset), row_text, fill=(50, 50, 50), font=font_small)
-                                            y_offset += 30
-
-                            # 保存图片到内存并上传
-                            img_buffer = io.BytesIO()
-                            img.save(img_buffer, "PNG")
-                            img_url = upload_to_storage(img_buffer.getvalue(), f"{clean_name}_slide_{slide_idx}.png")
-                            slide_images.append(img_url)
-
-                        chapter_data["slide_images"] = slide_images
-                        chapter_data["html"] = f"<p style='color:#666'>共 {len(slide_images)} 页幻灯片，下方显示预览</p>"
-                    except Exception as e:
-                        try:
-                            prs = Presentation(io.BytesIO(file_bytes))
-                            all_html = ""
-                            for slide in prs.slides:
-                                for shape in slide.shapes:
-                                    if shape.has_text_frame:
-                                        for para in shape.text_frame.paragraphs:
-                                            text = para.text.strip()
-                                            if text:
-                                                all_html += f"<p>{text}</p>"
-                            if all_html:
-                                chapter_data["html"] = all_html
-                        except Exception:
-                            pass
+                                    slide_html += '<table style="width:100%;border-collapse:collapse;margin:8px 0;">'
+                                    for row_idx, row in enumerate(table.rows):
+                                        slide_html += '<tr>'
+                                        for cell in row.cells:
+                                            tag = 'th' if row_idx == 0 else 'td'
+                                            slide_html += f'<{tag} style="border:1px solid #e2e8f0;padding:8px;text-align:left;">{cell.text.strip()}</{tag}>'
+                                        slide_html += '</tr>'
+                                    slide_html += '</table>'
+                                    has_content = True
+                            slide_html += '</div>'
+                            if has_content:
+                                all_html += slide_html
+                        chapter_data["html"] = all_html
+                    except Exception:
+                        pass
 
                 chapters.append(chapter_data)
 
