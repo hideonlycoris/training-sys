@@ -1110,7 +1110,7 @@ def page_upload_course():
                 # 清除该模块的学习进度
                 from db import get_supabase
                 sb = get_supabase()
-                sb.table("progress").delete().eq("module_id", replace_mid).execute()
+                sb.table("training_progress").delete().eq("module_id", replace_mid).execute()
                 st.success(f"已替换模块 [{mod_title}] 的课件。")
             else:
                 new_id = get_next_module_id()
@@ -1362,7 +1362,7 @@ def page_analytics():
 
     from db import get_supabase
     sb = get_supabase()
-    result = sb.table("users").select("id, username, display_name, department, emp_id").eq("role", "user").order("id").execute()
+    result = sb.table("training_users").select("id, username, display_name, department, emp_id").eq("role", "user").order("id").execute()
     users = result.data
 
     if not users:
@@ -1422,7 +1422,7 @@ def page_analytics():
         read_n = sum(checks)
         st.progress(read_n / ch_count if ch_count else 0, text=f"阅读进度: {read_n}/{ch_count}")
 
-        exam_result = sb.table("exam_results").select("score, answers, taken_at").eq("user_id", sel_uid).eq("module_id", mid).order("taken_at", desc=True).execute()
+        exam_result = sb.table("training_exam_results").select("score, answers, taken_at").eq("user_id", sel_uid).eq("module_id", mid).order("taken_at", desc=True).execute()
         exam_rows = exam_result.data
 
         if exam_rows:
