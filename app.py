@@ -29,18 +29,31 @@ from db import (
 
 # --- 云端适配：移除 Windows COM 依赖，云端不支持 Office 自动转 PDF ---
 
-# --------------- FILE STORAGE (云端适配) ---------------
+# --------------- FILE STORAGE (Supabase Storage) ---------------
 import urllib.parse
 
-UPLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+STORAGE_BUCKET = "training-files"
 
-# 云端适配：移除本地服务器和 Office 转 PDF，改为直接下载/内嵌显示
+def upload_to_storage(file_bytes: bytes, filename: str) -> str:
+    """上传文件到 Supabase Storage，返回公开访问 URL"""
+    sb = get_supabase()
+    # 使用时间戳+随机数避免文件名冲突
+    safe_name = f"{int(time.time())}_{filename}"
+    # 上传文件
+    sb.storage.from_(STORAGE_BUCKET).upload(safe_name, file_bytes)
+    # 获取公开 URL
+    url = sb.storage.from_(STORAGE_BUCKET).get_public_url(safe_name)
+    return url
 
-
-# --------------- FILE STORAGE ---------------
-UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+def get_storage_url(path: str) -> str:
+    """获取 Supabase Storage 文件的公开 URL"""
+    if not path:
+        return ""
+    # 如果已经是完整 URL，直接返回
+    if path.startswith("http"):
+        return path
+    sb = get_supabase()
+    return sb.storage.from_(STORAGE_BUCKET).get_public_url(path)
 
 # --------------- DB (from db.py) ---------------
 # init_db, hash_pw, authenticate, create_user, get_all_users,
@@ -663,38 +676,38 @@ def page_module():
         status_icon = "✅" if checks[idx] else "📖"
 
         with st.expander(f"{status_icon} 课件：{title_text}", expanded=not checks[idx]):
-            file_path = ch.get("file_path", "")
+            file_url = ch.get("file_url", "")
+            file_path = ch.get("file_path", "")  # 兼容旧数据
             file_type = ch.get("file_type", "pdf")
             html_content = ch.get("html", "")
             slide_images = ch.get("slide_images", [])
 
+            # 获取实际访问 URL
+            if file_url:
+                display_url = file_url
+            elif file_path:
+                display_url = get_storage_url(file_path)
+            else:
+                display_url = ""
+
             # 在线预览：优先显示 PPT 图片
-            if slide_images and os.path.exists(slide_images[0]):
-                for img_path in slide_images:
-                    if os.path.exists(img_path):
-                        st.image(img_path, use_container_width=True)
+            if slide_images:
+                for img in slide_images:
+                    img_url = img if img.startswith("http") else get_storage_url(img)
+                    st.image(img_url, use_container_width=True)
             elif html_content:
                 st.markdown(html_content, unsafe_allow_html=True)
-            elif file_path and os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+            elif display_url:
                 if file_type == "pdf":
                     # PDF 内嵌预览
-                    import base64
-                    with open(file_path, "rb") as f:
-                        pdf_bytes = f.read()
-                    pdf_base64 = base64.b64encode(pdf_bytes).decode('utf-8')
                     pdf_display = f"""
-                    <iframe src="data:application/pdf;base64,{pdf_base64}"
+                    <iframe src="{display_url}"
                             width="100%" height="600px" style="border:none;border-radius:8px;"></iframe>
                     """
                     st.markdown(pdf_display, unsafe_allow_html=True)
                 else:
-                    # 其他格式提供下载
-                    with open(file_path, "rb") as f:
-                        st.download_button(label=f"📥 下载课件 ({file_type.upper()})", data=f, file_name=f"{title_text}.{file_type}", key=f"dl_{mid}_{idx}")
-            elif file_path and os.path.exists(file_path) and os.path.getsize(file_path) == 0:
-                st.error("⚠️ 该文件转换失败（大小为0字节），请检查本地 Office 是否卡死。")
-            elif file_path:
-                st.error("⚠️ 文件路径失效，请管理员重新上传此模块。")
+                    # 其他格式提供下载链接
+                    st.markdown(f'<a href="{display_url}" target="_blank" style="display:inline-block;padding:8px 16px;background:#1a3c6e;color:white;border-radius:8px;text-decoration:none;">📥 下载课件 ({file_type.upper()})</a>', unsafe_allow_html=True)
             else:
                 st.info("该章节暂无内容。")
 
@@ -1015,20 +1028,21 @@ def page_upload_course():
     if uploaded_files and mod_title and st.button(btn_label, type="primary"):
         chapters = []
         try:
-            for f in uploaded_files:
+            progress_bar = st.progress(0, text="正在上传文件...")
+            for i, f in enumerate(uploaded_files):
+                progress_bar.progress((i) / len(uploaded_files), text=f"正在上传: {f.name}")
+
                 # 安全处理文件名：去除路径分隔符，防止路径穿越
                 import re as _re
                 clean_name = _re.sub(r'[/\\:*?"<>|]', '_', f.name)
-                safe_filename = f"{int(time.time())}_{clean_name}"
-                file_path = os.path.join(UPLOAD_DIR, safe_filename)
 
-                # 保存原始文件
                 file_bytes = f.read()
-                with open(file_path, "wb") as out:
-                    out.write(file_bytes)
-
                 ext = f.name.split('.')[-1].lower()
-                chapter_data = {"title": f.name, "file_path": file_path, "file_type": ext}
+                chapter_data = {"title": f.name, "file_type": ext}
+
+                # 上传文件到 Supabase Storage
+                file_url = upload_to_storage(file_bytes, clean_name)
+                chapter_data["file_url"] = file_url
 
                 # 在线预览：提取 DOCX/PPTX 的 HTML 内容
                 if ext in ("docx", "doc"):
@@ -1042,20 +1056,17 @@ def page_upload_course():
                         from PIL import Image, ImageDraw, ImageFont
                         prs = Presentation(io.BytesIO(file_bytes))
                         slide_images = []
-                        # 为每页 PPT 生成图片
+                        # 为每页 PPT 生成图片并上传
                         for slide_idx, slide in enumerate(prs.slides):
-                            # 创建白色背景图片 (1280x720)
                             img = Image.new('RGB', (1280, 720), color=(255, 255, 255))
                             draw = ImageDraw.Draw(img)
 
-                            # 提取幻灯片内容绘制到图片上
                             y_offset = 40
                             for shape in slide.shapes:
                                 if shape.has_text_frame:
                                     for para in shape.text_frame.paragraphs:
                                         text = para.text.strip()
                                         if text:
-                                            # 尝试使用系统字体
                                             try:
                                                 font = ImageFont.truetype("arial.ttf", 24)
                                             except:
@@ -1063,7 +1074,6 @@ def page_upload_course():
                                             draw.text((60, y_offset), text, fill=(30, 30, 30), font=font)
                                             y_offset += 40
                                 elif shape.has_table:
-                                    # 简单处理表格
                                     table = shape.table
                                     for row in table.rows:
                                         row_text = " | ".join(cell.text.strip() for cell in row.cells)
@@ -1075,15 +1085,15 @@ def page_upload_course():
                                             draw.text((60, y_offset), row_text, fill=(50, 50, 50), font=font)
                                             y_offset += 30
 
-                            # 保存图片
-                            img_path = os.path.join(UPLOAD_DIR, f"{safe_filename}_slide_{slide_idx}.png")
-                            img.save(img_path, "PNG")
-                            slide_images.append(img_path)
+                            # 保存图片到内存并上传
+                            img_buffer = io.BytesIO()
+                            img.save(img_buffer, "PNG")
+                            img_url = upload_to_storage(img_buffer.getvalue(), f"{clean_name}_slide_{slide_idx}.png")
+                            slide_images.append(img_url)
 
                         chapter_data["slide_images"] = slide_images
                         chapter_data["html"] = f"<p style='color:#666'>共 {len(slide_images)} 页幻灯片，下方显示预览</p>"
                     except Exception as e:
-                        # 如果图片转换失败，回退到纯文本
                         try:
                             prs = Presentation(io.BytesIO(file_bytes))
                             all_html = ""
@@ -1101,9 +1111,10 @@ def page_upload_course():
 
                 chapters.append(chapter_data)
 
+            progress_bar.progress(1.0, text="上传完成！")
+
             if replace_mid:
                 save_module(replace_mid, mod_title, chapters)
-                # 清除该模块的学习进度
                 from db import get_supabase
                 sb = get_supabase()
                 sb.table("training_progress").delete().eq("module_id", replace_mid).execute()
