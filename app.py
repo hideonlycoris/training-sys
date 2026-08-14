@@ -37,12 +37,21 @@ STORAGE_BUCKET = "training-files"
 def upload_to_storage(file_bytes: bytes, filename: str) -> str:
     """上传文件到 Supabase Storage，返回公开访问 URL"""
     sb = get_supabase()
-    # 使用时间戳+随机数避免文件名冲突
-    safe_name = f"{int(time.time())}_{filename}"
+    # 文件名转纯英文：中文转拼音首字母，特殊字符替换
+    import re as _re
+    # 提取扩展名
+    ext = filename.rsplit(".", 1)[-1] if "." in filename else "bin"
+    # 去掉扩展名，只保留文件名部分
+    name_part = filename.rsplit(".", 1)[0] if "." in filename else filename
+    # 将非ASCII字符替换为下划线，连续下划线合并
+    safe_name = _re.sub(r'[^\x00-\x7F]+', '_', name_part)
+    safe_name = _re.sub(r'_+', '_', safe_name).strip('_')
+    # 使用时间戳+安全文件名
+    full_name = f"{int(time.time())}_{safe_name}.{ext}"
     # 上传文件
-    sb.storage.from_(STORAGE_BUCKET).upload(safe_name, file_bytes)
+    sb.storage.from_(STORAGE_BUCKET).upload(full_name, file_bytes)
     # 获取公开 URL
-    url = sb.storage.from_(STORAGE_BUCKET).get_public_url(safe_name)
+    url = sb.storage.from_(STORAGE_BUCKET).get_public_url(full_name)
     return url
 
 def get_storage_url(path: str) -> str:
