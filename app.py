@@ -1065,6 +1065,28 @@ def page_upload_course():
                         from PIL import Image, ImageDraw, ImageFont
                         prs = Presentation(io.BytesIO(file_bytes))
                         slide_images = []
+
+                        # 查找支持中文的字体
+                        def get_cjk_font(size):
+                            font_paths = [
+                                "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+                                "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+                                "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
+                                "/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc",
+                                "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
+                                "/usr/share/fonts/wqy-zenhei/wqy-zenhei.ttc",
+                                "C:/Windows/Fonts/msyh.ttc",
+                                "C:/Windows/Fonts/simsun.ttc",
+                            ]
+                            for fp in font_paths:
+                                if os.path.exists(fp):
+                                    return ImageFont.truetype(fp, size)
+                            return ImageFont.load_default()
+
+                        font_title = get_cjk_font(32)
+                        font_body = get_cjk_font(24)
+                        font_small = get_cjk_font(18)
+
                         # 为每页 PPT 生成图片并上传
                         for slide_idx, slide in enumerate(prs.slides):
                             img = Image.new('RGB', (1280, 720), color=(255, 255, 255))
@@ -1076,22 +1098,17 @@ def page_upload_course():
                                     for para in shape.text_frame.paragraphs:
                                         text = para.text.strip()
                                         if text:
-                                            try:
-                                                font = ImageFont.truetype("arial.ttf", 24)
-                                            except:
-                                                font = ImageFont.load_default()
+                                            # 检测是否为标题（粗体或大字号）
+                                            is_title = para.font.bold if para.font else False
+                                            font = font_title if is_title else font_body
                                             draw.text((60, y_offset), text, fill=(30, 30, 30), font=font)
-                                            y_offset += 40
+                                            y_offset += 45 if is_title else 35
                                 elif shape.has_table:
                                     table = shape.table
                                     for row in table.rows:
                                         row_text = " | ".join(cell.text.strip() for cell in row.cells)
                                         if row_text.strip():
-                                            try:
-                                                font = ImageFont.truetype("arial.ttf", 18)
-                                            except:
-                                                font = ImageFont.load_default()
-                                            draw.text((60, y_offset), row_text, fill=(50, 50, 50), font=font)
+                                            draw.text((60, y_offset), row_text, fill=(50, 50, 50), font=font_small)
                                             y_offset += 30
 
                             # 保存图片到内存并上传
