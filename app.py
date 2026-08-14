@@ -666,9 +666,14 @@ def page_module():
             file_path = ch.get("file_path", "")
             file_type = ch.get("file_type", "pdf")
             html_content = ch.get("html", "")
+            slide_images = ch.get("slide_images", [])
 
-            # 在线预览：优先显示 HTML 内容
-            if html_content:
+            # 在线预览：优先显示 PPT 图片
+            if slide_images and os.path.exists(slide_images[0]):
+                for img_path in slide_images:
+                    if os.path.exists(img_path):
+                        st.image(img_path, use_container_width=True)
+            elif html_content:
                 st.markdown(html_content, unsafe_allow_html=True)
             elif file_path and os.path.exists(file_path) and os.path.getsize(file_path) > 0:
                 if file_type == "pdf":
@@ -1034,19 +1039,65 @@ def page_upload_course():
                         pass
                 elif ext in ("pptx", "ppt"):
                     try:
+                        from PIL import Image, ImageDraw, ImageFont
                         prs = Presentation(io.BytesIO(file_bytes))
-                        all_html = ""
-                        for slide in prs.slides:
+                        slide_images = []
+                        # 为每页 PPT 生成图片
+                        for slide_idx, slide in enumerate(prs.slides):
+                            # 创建白色背景图片 (1280x720)
+                            img = Image.new('RGB', (1280, 720), color=(255, 255, 255))
+                            draw = ImageDraw.Draw(img)
+
+                            # 提取幻灯片内容绘制到图片上
+                            y_offset = 40
                             for shape in slide.shapes:
                                 if shape.has_text_frame:
                                     for para in shape.text_frame.paragraphs:
                                         text = para.text.strip()
                                         if text:
-                                            all_html += f"<p>{text}</p>"
-                        if all_html:
-                            chapter_data["html"] = all_html
-                    except Exception:
-                        pass
+                                            # 尝试使用系统字体
+                                            try:
+                                                font = ImageFont.truetype("arial.ttf", 24)
+                                            except:
+                                                font = ImageFont.load_default()
+                                            draw.text((60, y_offset), text, fill=(30, 30, 30), font=font)
+                                            y_offset += 40
+                                elif shape.has_table:
+                                    # 简单处理表格
+                                    table = shape.table
+                                    for row in table.rows:
+                                        row_text = " | ".join(cell.text.strip() for cell in row.cells)
+                                        if row_text.strip():
+                                            try:
+                                                font = ImageFont.truetype("arial.ttf", 18)
+                                            except:
+                                                font = ImageFont.load_default()
+                                            draw.text((60, y_offset), row_text, fill=(50, 50, 50), font=font)
+                                            y_offset += 30
+
+                            # 保存图片
+                            img_path = os.path.join(UPLOAD_DIR, f"{safe_filename}_slide_{slide_idx}.png")
+                            img.save(img_path, "PNG")
+                            slide_images.append(img_path)
+
+                        chapter_data["slide_images"] = slide_images
+                        chapter_data["html"] = f"<p style='color:#666'>共 {len(slide_images)} 页幻灯片，下方显示预览</p>"
+                    except Exception as e:
+                        # 如果图片转换失败，回退到纯文本
+                        try:
+                            prs = Presentation(io.BytesIO(file_bytes))
+                            all_html = ""
+                            for slide in prs.slides:
+                                for shape in slide.shapes:
+                                    if shape.has_text_frame:
+                                        for para in shape.text_frame.paragraphs:
+                                            text = para.text.strip()
+                                            if text:
+                                                all_html += f"<p>{text}</p>"
+                            if all_html:
+                                chapter_data["html"] = all_html
+                        except Exception:
+                            pass
 
                 chapters.append(chapter_data)
 
