@@ -63,11 +63,11 @@ def get_departments():
         return []
 
 def get_default_modules():
-    “””默认模块为空，由管理员通过界面上传”””
+    """默认模块为空，由管理员通过界面上传"""
     return {}
 
 def get_default_exams():
-    “””默认考题为空，由管理员通过界面上传”””
+    """默认考题为空，由管理员通过界面上传"""
     return {}
 
 # --------------- COURSE PARSER ---------------
@@ -102,7 +102,7 @@ def parse_docx_to_chapters(file_bytes: bytes) -> list:
         # 判断这一段是否匹配标题特征
         if chapter_regex.match(part):
             # 如果之前的章节有实质内容，先保存
-            # 过滤掉只有几个字且无后续内容的“假章节”
+            # 过滤掉只有几个字且无后续内容的"假章节"
             if current_content.strip() and len(re.sub(r'<[^>]+>', '', current_content).strip()) > 5:
                 chapters.append({"title": current_title, "html": current_content})
             
@@ -186,11 +186,11 @@ def parse_pptx_to_chapters(file_bytes: bytes) -> list:
     
     # 最后的结算
     if buffer_title or buffer_content:
-        # 修正标题，防止只有“PART ONE”这种没意义的标题
+        # 修正标题，防止只有"PART ONE"这种没意义的标题
         display_title = buffer_title if len(buffer_title) > 2 else "课程章节"
         final_chapters.append({"title": display_title, "html": f"<h4>{buffer_title}</h4>{buffer_content}"})
 
-    # 3. 二次清洗：剔除只有“目录”、“谢谢观看”等无意义章节
+    # 3. 二次清洗：剔除只有"目录"、"谢谢观看"等无意义章节
     cleaned_chapters = []
     useless_keywords = ["目录", "CONTENTS", "CONTENT", "谢谢", "THANK", "Q&A", "封面"]
     for c in final_chapters:
