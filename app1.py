@@ -1,5 +1,5 @@
 """
-驭长风供应链 — 新员工培训系统 (Streamlit)
+新员工培训系统 (Streamlit)
 Features: account management, training modules, exams, PDF certificates, course upload
 """
 
@@ -655,7 +655,7 @@ def delete_exam_questions_db(mid):
 
 # --------------- PAGE: LOGIN ---------------
 def page_login():
-    st.markdown("## 驭长风供应链 — 新员工培训系统")
+    st.markdown("## 新员工培训系统")
     tab_login, tab_reg = st.tabs(["登录", "注册"])
     with tab_login:
         username = st.text_input("用户名", key="login_user")
@@ -1051,7 +1051,7 @@ def page_certificate():
     st.markdown(f"""
 <div style="border:3px double #c9a84c;padding:30px;text-align:center;max-width:600px;margin:auto;background:#fffef7">
 <h2 style="color:#1a3c6e">培训合格证书</h2>
-<p style="color:#888">驭长风供应链 新员工培训</p>
+<p style="color:#888">新员工培训</p>
 <p>员工: <b>{user['display_name']}</b> &nbsp; 工号: {user.get('emp_id','')} &nbsp; 部门: {user.get('department','')}</p>
 <p>已完成全部培训课程并通过考核</p>
 <table style="margin:16px auto;border-collapse:collapse">
@@ -1439,7 +1439,7 @@ def page_analytics():
 
 # --------------- SIDEBAR & MAIN ---------------
 def main():
-    st.set_page_config(page_title="驭长风供应链培训系统", page_icon="📚", layout="wide")
+    st.set_page_config(page_title="培训系统", page_icon="📚", layout="wide")
     init_db()
 
     # Init session state

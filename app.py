@@ -1,5 +1,5 @@
 """
-驭长风供应链 — 新员工培训系统 (Streamlit)
+新员工培训系统 (Streamlit)
 Premium Enterprise Edition
 Features: account management, training modules, exams, PDF certificates, course upload, analytics
 """
@@ -53,110 +53,22 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 # --------------- DEFAULT TRAINING DATA ---------------
-DEPARTMENTS = [
-    "运营一部", "运营二部", "运营三部", "运营四部",
-    "开发部", "采购部", "财务部", "人力行政部",
-    "物控组", "海运物流组", "仓储组", "品质组", "供应链综合组",
-]
+# 部门列表从 Secrets 读取（JSON 数组格式），默认为空
+def get_departments():
+    import json as _json
+    dept_str = st.secrets.get("departments", "[]")
+    try:
+        return _json.loads(dept_str) if isinstance(dept_str, str) else dept_str
+    except:
+        return []
 
 def get_default_modules():
-    return {
-        1: {
-            "title": "模块一：供应链管理与滚动计划",
-            "chapters": [
-                {
-                    "title": "1. 计划的定义与三大特征",
-                    "html": "<h4>一、什么是计划？</h4><p>计划是在了解了市场与竞争对手后，结合自身供应链情况所做出的销售策略 [cite: 1]。</p><h4>二、计划的三大特征</h4><ul><li><b>所有预测都是错的，但有预测比没有强</b>：错多错少很关键，比竞争对手错的少，综合成本更低 [cite: 1]。</li><li><b>多职能参与</b>：需要开发、采购/生产、物控、财务等协同参与 [cite: 1]。</li><li><b>循环预测，逐渐逼近</b>：执行中遇到失准问题，需要立刻进行计划修正，用执行弥补不足 [cite: 1]。</li></ul>"
-                },
-                {
-                    "title": "2. 物控的核心职能与三道防线",
-                    "html": "<h4>一、物控的五大核心职能</h4><ul><li>生成需求计划并达成机会与风险平衡 [cite: 1]</li><li>根据海运和生产周期制定发货计划 [cite: 1]</li><li>与工厂沟通排产（未来2-3个月） [cite: 1]</li><li>追踪监控销售（每日/每周完成率） [cite: 1]</li><li>确立产品退出机制 [cite: 1]</li></ul><h4>二、供应链的三道防线</h4><p>1. <b>准确的计划</b>（第一道防线） [cite: 1]<br>2. <b>安全库存</b>（第二道防线）：针对重点产品采用 <b>3+2模式</b>（海外3个月，工厂2个月） [cite: 1]<br>3. <b>供应链执行</b>（第三道防线）：如果前两道防线失守，压力全转移到执行，全员陷入救火模式 [cite: 1]。</p>"
-                },
-                {
-                    "title": "3. 滚动计划与异常管控",
-                    "html": "<h4>一、滚动计划的核心逻辑</h4><p>生产周期越长的产品，供应链链条越长，反应速度越慢 [cite: 1]。例如，7月份的出货向前对应9月的销售，向后却对应5月份的生产和4月的订单 [cite: 1]。</p><h4>二、异常销售管控原则</h4><ul><li><b>无明显波动不变更</b>：哪怕能卖更多，也要通过涨价、控广告将销量控制在20%上下浮动 [cite: 1]。</li><li><b>超预期断货</b>：如果失控，要及时预估断货月份，并将该月的销售计划调整为0 [cite: 1]。</li><li><b>环环相扣</b>：每月做新计划时，必须对照上月提供的计划记录 [cite: 1]。</li></ul>"
-                },
-                {
-                    "title": "4. 产品品级定义",
-                    "html": "<h4>一、四大品级定义</h4><ul><li><b>爆品</b>：类目Top，超额准备库存，投入最好资源。变体数量严格控制在 <b>4个以内</b> [cite: 1]。</li><li><b>利润品</b>：毛利率15%以上（美国市场标准） [cite: 1]。</li><li><b>新品</b>：上线三个月内，随后定级，决定是返单还是清尾 [cite: 1]。</li><li><b>清尾品</b>：月销售低于 30件 或 毛利率小于 5% [cite: 1]。</li></ul>"
-                }
-            ]
-        },
-        2: {
-            "title": "模块二：海外仓物流与发货规范",
-            "chapters": [
-                {
-                    "title": "1. FBA直发与AGL规范",
-                    "html": "<h4>一、提报计划与发货标准</h4><ul><li>每月 <b>20号</b> 提交未来五个月销售计划及三个月发货计划 [cite: 3]。</li><li>FBA国内直发：<b>2CBM起收</b>，不满按2CBM收费 [cite: 3]。</li><li>AGL（亚马逊物流）：<b>1CBM起收</b>，优点是不分仓免锁仓费、上架快 [cite: 2, 3]。</li></ul><h4>二、操作规范</h4><ul><li>严格按审核后的计划数建货件，超出将被物流部<b>驳回不发</b> [cite: 3]。</li><li>AGL后台“货好时间”最少多预留 <b>3个工作日</b> 给物流部贴标和预约，否则逾期需重新排船 [cite: 3]。</li><li>文件命名：`BOX LABEL-SKU-FBA ID-箱数-地址代称`，至少<b>提前一周</b>给物流部 [cite: 3]。</li></ul>"
-                },
-                {
-                    "title": "2. 海外仓费用与附加费机制",
-                    "html": "<h4>一、基础费用</h4><p>主要包括入库费、仓储费（按体积）、出库费 [cite: 4]。</p><h4>二、尾程快递附加费 (重点)</h4><ul><li><b>AHS额外处理费</b>：最长边超48in / 次长边超30in / 围长>105in / 单件超50lb（符合其一即收） [cite: 4]。</li><li><b>Oversize超尺寸附加费</b>：最长边超96in 或 围长>130in [cite: 4]。</li></ul><h4>三、Wayfair仓省钱策略</h4><p>2026年1月起，110lb以上将加收oversize费（约40-50美金），而Wayfair仓暂不加收。建议如劈材器、吹雪机试发Wayfair仓节约尾程成本 [cite: 4]。</p>"
-                },
-                {
-                    "title": "3. 时效与索赔协同",
-                    "html": "<h4>一、时效标准</h4><ul><li>散货到港后（涉拆柜打托），送仓时效 <b>7-12天</b> [cite: 3]。</li><li>海外仓出库时效 <b>1-2个工作日</b> [cite: 4]。</li><li>尾程超 <b>7个工作日</b> 无更新视为丢件，可发起索赔 [cite: 4]。</li></ul><h4>二、退件与索赔协同</h4><ul><li>退件处理需在销毁时间前填写意见，逾期 <b>默认销毁</b> [cite: 4]。</li><li>索赔登记必须提供规定的必填照片，否则降低成功率。索赔周期为1-3个月，超3个月默认失败 [cite: 4]。</li></ul>"
-                }
-            ]
-        },
-        3: {
-            "title": "模块三：易仓系统操作与异常处理",
-            "chapters": [
-                {
-                    "title": "1. 订单自动化与推单",
-                    "html": "<h4>一、自动与人工推单</h4><p>开启自动推单后，系统会根据收货人距离<b>自动分仓</b>，匹配运费最低的仓库和渠道，切勿手动选择 [cite: 5]。</p><p>注意：金额为0的<b>换货订单</b>不在自动推单范围内，仍需手动检查 [cite: 5]。</p><h4>二、订单拦截（作废）</h4><p>在“待发货”中勾选点击截单，转至问题件，<b>绝对不要勾选</b>“确认服务商已删除订单”。转为问题件后再作废即可 [cite: 5]。</p>"
-                },
-                {
-                    "title": "2. 团队库存与缺货排查",
-                    "html": "<h4>一、如何查看团队库存？</h4><p>顶部导航栏点击“仓储” -> “库存查询（团队）”，输入SKU即可查看本部门的可用库存 [cite: 5]。</p><h4>二、有库存却显示“缺货订单”的原因</h4><ul><li><b>Listing未绑定负责人</b>：导致系统无法识别团队库存。绑好负责人后，需在待发货审核处点击“批量更新团队” [cite: 5]。</li><li><b>系统拆单Bug</b>：当仓库只剩1件，而订单要2件时，拆单会锁定这1件导致发走一单缺货一单 [cite: 5]。</li></ul>"
-                },
-                {
-                    "title": "3. 常见异常件处理",
-                    "html": "<h4>一、推送失败异常</h4><ul><li>提示 <b>duplication</b>：在原单号后加上“-1”重新新建订单 [cite: 5]。</li><li>分仓异常（如EfurdenUS）：可能是SKU未建立映射，导致海外仓无法识别 [cite: 5]。</li><li>地址异常：收件人名字太短（少于2个字符）或太长（超20个字符），以及地址中包含 PO BOX 字眼 [cite: 5]。</li></ul><h4>二、试算物流费</h4><p>运费主要由<b>邮编</b>决定，试算时随意输入收件人姓名和地址，只要替换为目标邮编即可出结果 [cite: 5]。</p>"
-                }
-            ]
-        }
-    }
+    “””默认模块为空，由管理员通过界面上传”””
+    return {}
 
 def get_default_exams():
-    return {
-        1: [
-            {"q": "计划的三个特征中，第一个是什么？", "opts": ["所有预测都是错的但有预测比没有强", "预测只需销售部门参与", "计划制定后不需要修改", "预测越乐观越好"], "ans": 0},
-            {"q": "供应链第二道防线是？", "opts": ["准确计划", "安全库存", "供应链执行", "价格调整"], "ans": 1},
-            {"q": "重点产品备货模式是？", "opts": ["海外1+工厂1", "海外2+工厂3", "海外3+工厂2", "海外5个月"], "ans": 2},
-            {"q": "物控核心职能不包括？", "opts": ["生成需求计划", "制定发货计划", "产品广告投放", "产品退出机制"], "ans": 2},
-            {"q": "计划达成率低于多少属于库存滞销？", "opts": ["90%", "80%", "70%", "60%"], "ans": 2},
-            {"q": "滚动计划中完成率正负多少以内视为合理？", "opts": ["10%", "15%", "20%", "30%"], "ans": 2},
-            {"q": "以60天生产+45天海运，1月销售的货最晚何时发走？", "opts": ["前一年10月", "前一年11月初", "前一年12月", "当年1月初"], "ans": 1},
-            {"q": "清尾品标准是？", "opts": ["月销<100或毛利<10%", "月销<50或毛利<8%", "月销<30或毛利<5%", "月销<20或毛利<3%"], "ans": 2},
-            {"q": "爆品变体数量最多不超过？", "opts": ["2个", "3个", "4个", "6个"], "ans": 2},
-            {"q": "采购订单从提交到工厂排产一般需要？", "opts": ["3-5天", "7-14天", "15-20天", "21-30天"], "ans": 1},
-        ],
-        2: [
-            {"q": "每月几号提交滚动销售计划？", "opts": ["1号", "10号", "15号", "20号"], "ans": 3},
-            {"q": "FBA国内直发最低按多少CBM收费？", "opts": ["1CBM", "2CBM", "3CBM", "5CBM"], "ans": 1},
-            {"q": "AGL最低按多少CBM收费？", "opts": ["0.5CBM", "1CBM", "2CBM", "3CBM"], "ans": 1},
-            {"q": "AGL优点不包括？", "opts": ["官方物流有保障", "上架时效快", "不分仓免锁仓费", "旺季运力充足"], "ans": 3},
-            {"q": "直发条码文件至少提前多久给物流部？", "opts": ["3天", "5天", "一周", "两周"], "ans": 2},
-            {"q": "箱唛打印格式要求？", "opts": ["A4纸", "热敏4×6英寸", "热敏6×8英寸", "A5纸"], "ans": 1},
-            {"q": "整柜到港送仓正常时效？", "opts": ["3天", "5天", "7天内", "14天"], "ans": 2},
-            {"q": "带电产品发货不需要提供的资料？", "opts": ["MSDS", "UN38.3报告", "海运鉴定报告", "使用说明书"], "ans": 3},
-            {"q": "AGL贸易术语应选择？", "opts": ["到岸价", "到门价", "工厂交货", "离岸价"], "ans": 2},
-            {"q": "超出审核数量的货件物流部如何处理？", "opts": ["正常发货", "延迟发货", "驳回不发", "加收费用"], "ans": 2},
-        ],
-        3: [
-            {"q": "开启自动推单后，系统会根据什么自动分仓？", "opts": ["商品重量", "收货人距离", "仓库库存", "订单金额"], "ans": 1},
-            {"q": "金额为0的换货订单如何处理？", "opts": ["自动推单", "需要手动检查", "直接删除", "忽略不处理"], "ans": 1},
-            {"q": "订单拦截（作废）的正确操作是？", "opts": ["直接勾选确认删除", "转为问题件后再作废", "联系客服处理", "等待系统自动处理"], "ans": 1},
-            {"q": "查看团队库存的路径是？", "opts": ["首页→库存查询", "仓储→库存查询（团队）", "订单→库存管理", "设置→库存查看"], "ans": 1},
-            {"q": "有库存却显示缺货订单，可能的原因是？", "opts": ["库存数据错误", "Listing未绑定负责人", "系统服务器故障", "网络连接问题"], "ans": 1},
-            {"q": "系统拆单Bug是指什么情况？", "opts": ["订单被重复拆分", "仓库只剩1件但订单要2件", "拆单后无法追踪", "拆单导致运费增加"], "ans": 1},
-            {"q": "推送失败提示duplication时如何处理？", "opts": ["重新创建订单", "在原单号后加\"-1\"重新新建", "联系技术支持", "删除原订单重下"], "ans": 1},
-            {"q": "地址异常不包括以下哪种情况？", "opts": ["收件人名字太短", "地址包含PO BOX", "邮编格式错误", "收件人名字太长"], "ans": 2},
-            {"q": "试算物流费时主要由什么决定？", "opts": ["商品重量", "邮编", "订单金额", "配送时效"], "ans": 1},
-            {"q": "海外仓出库时效标准是？", "opts": ["当天", "1-2个工作日", "3-5个工作日", "一周内"], "ans": 1},
-        ],
-    }
+    “””默认考题为空，由管理员通过界面上传”””
+    return {}
 
 # --------------- COURSE PARSER ---------------
 def parse_docx_to_chapters(file_bytes: bytes) -> list:
@@ -497,7 +409,7 @@ def page_login():
             new_pw = st.text_input("Password", type="password", key="reg_pw", placeholder="Set password")
             new_name = st.text_input("Full Name", key="reg_name", placeholder="Your name")
             new_emp = st.text_input("Employee ID", key="reg_emp", placeholder="Employee ID")
-            new_dept = st.selectbox("Department", DEPARTMENTS, key="reg_dept")
+            new_dept = st.selectbox("Department", get_departments(), key="reg_dept")
             if st.button("Create Account", use_container_width=True):
                 if not new_user or not new_pw or not new_name:
                     st.warning("Please fill in all required fields")
@@ -518,7 +430,7 @@ def page_admin():
         c3, c4, c5 = st.columns(3)
         nn = c3.text_input("姓名", key="adm_nn")
         ne = c4.text_input("工号", key="adm_ne")
-        nd = c5.selectbox("部门", DEPARTMENTS, key="adm_nd")
+        nd = c5.selectbox("部门", get_departments(), key="adm_nd")
         nr = st.selectbox("角色", ["user", "admin"], key="adm_nr")
         if st.button("创建"):
             if nu and np and nn:
@@ -1487,7 +1399,9 @@ def page_analytics():
 
 # --------------- SIDEBAR & MAIN ---------------
 def main():
-    st.set_page_config(page_title="驭长风供应链培训系统", page_icon="📦", layout="wide")
+    # 公司名称从 Secrets 读取
+    COMPANY_NAME = st.secrets.get("company_name", "培训系统")
+    st.set_page_config(page_title=f"{COMPANY_NAME} - 培训系统", page_icon="📦", layout="wide")
     inject_global_css()
 
     # 初始化 Supabase 数据库
@@ -1498,7 +1412,7 @@ def main():
     if admin_pw:
         seed_admin(admin_pw)
 
-    # 种子默认模块和考试
+    # 种子默认模块和考试（现在为空，由管理员上传）
     seed_default_modules(get_default_modules(), get_default_exams())
 
     if "page" not in st.session_state:
@@ -1511,7 +1425,7 @@ def main():
     user = st.session_state.user
 
     with st.sidebar:
-        st.markdown(f"### 📦 驭长风培训")
+        st.markdown(f"### 📦 {COMPANY_NAME}培训")
         st.markdown(f"**{user['display_name']}**")
         st.caption(f"👤 {user.get('department','')} | {user.get('emp_id','')}")
         st.markdown("---")

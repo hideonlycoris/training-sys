@@ -355,7 +355,7 @@ def render_login():
   <div class="login-card">
     <div class="login-logo">
       <div class="icon">📦</div>
-      <h1>驭长风供应链</h1>
+      <h1>供应链培训系统</h1>
       <p>Enterprise Training Platform</p>
     </div>
   </div>
