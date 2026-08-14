@@ -412,8 +412,8 @@ def render_dashboard_header(name: str, dept: str, emp_id: str = ""):
 }}
 </style>
 <div class="dash-header">
-  <h1>Welcome back, <span>{name}</span></h1>
-  <p>Track your training progress and complete all modules</p>
+  <h1>欢迎回来, <span>{name}</span></h1>
+  <p>跟踪您的培训进度，完成所有模块</p>
   <div class="user-info">
     <span>👤 {name}</span>
     <span>|</span>
@@ -546,13 +546,13 @@ def render_progress_card(pct: int):
 </style>
 <div class="progress-card">
   <div class="header">
-    <div class="title">Overall Progress</div>
+    <div class="title">总体进度</div>
     <div class="pct">{pct}%</div>
   </div>
   <div class="progress-bar-bg">
     <div class="progress-bar-fill"></div>
   </div>
-  <div class="progress-hint">Complete all modules and exams to get certified</div>
+  <div class="progress-hint">完成所有模块和考试即可获得认证</div>
 </div>
 """, height=180)
 

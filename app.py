@@ -392,31 +392,31 @@ def page_login():
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.markdown("<div style='margin-top:-300px'></div>", unsafe_allow_html=True)
-        tab_login, tab_reg = st.tabs(["🔑 Login", "📝 Register"])
+        tab_login, tab_reg = st.tabs(["🔑 登录", "📝 注册"])
         with tab_login:
-            username = st.text_input("Username", key="login_user", placeholder="Enter username")
-            password = st.text_input("Password", type="password", key="login_pw", placeholder="Enter password")
-            if st.button("Sign In", type="primary", use_container_width=True):
+            username = st.text_input("用户名", key="login_user", placeholder="请输入用户名")
+            password = st.text_input("密码", type="password", key="login_pw", placeholder="请输入密码")
+            if st.button("登录", type="primary", use_container_width=True):
                 user = authenticate(username, password)
                 if user:
                     st.session_state.user = user
                     st.session_state.page = "dashboard"
                     st.rerun()
                 else:
-                    st.error("Invalid username or password")
+                    st.error("用户名或密码错误")
         with tab_reg:
-            new_user = st.text_input("Username", key="reg_user", placeholder="Set username")
-            new_pw = st.text_input("Password", type="password", key="reg_pw", placeholder="Set password")
-            new_name = st.text_input("Full Name", key="reg_name", placeholder="Your name")
-            new_emp = st.text_input("Employee ID", key="reg_emp", placeholder="Employee ID")
-            new_dept = st.selectbox("Department", get_departments(), key="reg_dept")
-            if st.button("Create Account", use_container_width=True):
+            new_user = st.text_input("用户名", key="reg_user", placeholder="设置用户名")
+            new_pw = st.text_input("密码", type="password", key="reg_pw", placeholder="设置密码")
+            new_name = st.text_input("姓名", key="reg_name", placeholder="您的姓名")
+            new_emp = st.text_input("工号", key="reg_emp", placeholder="员工工号")
+            new_dept = st.selectbox("部门", get_departments(), key="reg_dept")
+            if st.button("注册", use_container_width=True):
                 if not new_user or not new_pw or not new_name:
-                    st.warning("Please fill in all required fields")
+                    st.warning("请填写所有必填项")
                 elif create_user(new_user, new_pw, new_name, new_emp, new_dept):
-                    st.success("Account created! Please sign in.")
+                    st.success("注册成功！请登录。")
                 else:
-                    st.error("Username already exists")
+                    st.error("用户名已存在")
 
 # --------------- PAGE: ADMIN ---------------
 def page_admin():
@@ -475,13 +475,13 @@ def page_dashboard():
     st.markdown("<div style='height:24px'></div>", unsafe_allow_html=True)
     cols = st.columns(4)
     with cols[0]:
-        render_stats_card("📚", "TOTAL MODULES", str(total_modules), "#1a3c6e")
+        render_stats_card("📚", "模块总数", str(total_modules), "#1a3c6e")
     with cols[1]:
-        render_stats_card("📖", "CHAPTERS", str(total_chapters), "#2a5ca8")
+        render_stats_card("📖", "章节总数", str(total_chapters), "#2a5ca8")
     with cols[2]:
-        render_stats_card("📝", "EXAMS", str(total_exams), "#c9a84c")
+        render_stats_card("📝", "考试总数", str(total_exams), "#c9a84c")
     with cols[3]:
-        render_stats_card("⏱", "HOURS", "12+", "#059669")
+        render_stats_card("⏱", "学习时长", "12+", "#059669")
 
     st.markdown("<div style='height:32px'></div>", unsafe_allow_html=True)
 
@@ -502,8 +502,8 @@ def page_dashboard():
     st.markdown("""
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
   <div>
-    <h2 style="font-size:1.25rem;font-weight:700;color:#0f172a;margin:0">Training Modules</h2>
-    <p style="color:#64748b;font-size:.9rem;margin:4px 0 0">Complete all modules to receive certification</p>
+    <h2 style="font-size:1.25rem;font-weight:700;color:#0f172a;margin:0">培训模块</h2>
+    <p style="color:#64748b;font-size:.9rem;margin:4px 0 0">完成所有模块即可获得认证</p>
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -556,7 +556,7 @@ def page_dashboard():
     )
     if all_pass and all_read:
         st.markdown("<div style='height:32px'></div>", unsafe_allow_html=True)
-        if st.button("🎓 Get Your Certificate", type="primary", use_container_width=True):
+        if st.button("🎓 获取证书", type="primary", use_container_width=True):
             st.session_state.page = "certificate"
             st.rerun()
 
@@ -665,23 +665,31 @@ def page_module():
         with st.expander(f"{status_icon} 课件：{title_text}", expanded=not checks[idx]):
             file_path = ch.get("file_path", "")
             file_type = ch.get("file_type", "pdf")
-            old_html = ch.get("html", "")
+            html_content = ch.get("html", "")
 
-            if file_path:
-                if not os.path.exists(file_path):
-                    st.error("⚠️ 文件路径失效，请管理员重新上传此模块。")
+            # 在线预览：优先显示 HTML 内容
+            if html_content:
+                st.markdown(html_content, unsafe_allow_html=True)
+            elif file_path and os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+                if file_type == "pdf":
+                    # PDF 内嵌预览
+                    import base64
+                    with open(file_path, "rb") as f:
+                        pdf_bytes = f.read()
+                    pdf_base64 = base64.b64encode(pdf_bytes).decode('utf-8')
+                    pdf_display = f"""
+                    <iframe src="data:application/pdf;base64,{pdf_base64}"
+                            width="100%" height="600px" style="border:none;border-radius:8px;"></iframe>
+                    """
+                    st.markdown(pdf_display, unsafe_allow_html=True)
                 else:
-                    if os.path.getsize(file_path) == 0:
-                        st.error("⚠️ 该文件转换失败（大小为0字节），请检查本地 Office 是否卡死。")
-                    else:
-                        # 云端适配：直接提供下载（无法使用本地服务器预览）
-                        with open(file_path, "rb") as f:
-                            st.download_button(label=f"📥 下载课件 ({file_type.upper()})", data=f, file_name=f"{title_text}.{file_type}", key=f"dl_{mid}_{idx}")
-            elif old_html:
-                # 注意：此处渲染管理员上传的 HTML 内容
-                # 风险：恶意 DOCX/PPTX 可能包含 JavaScript
-                # 缓解：仅管理员可上传，且内容在内部使用
-                st.markdown(old_html, unsafe_allow_html=True)
+                    # 其他格式提供下载
+                    with open(file_path, "rb") as f:
+                        st.download_button(label=f"📥 下载课件 ({file_type.upper()})", data=f, file_name=f"{title_text}.{file_type}", key=f"dl_{mid}_{idx}")
+            elif file_path and os.path.exists(file_path) and os.path.getsize(file_path) == 0:
+                st.error("⚠️ 该文件转换失败（大小为0字节），请检查本地 Office 是否卡死。")
+            elif file_path:
+                st.error("⚠️ 文件路径失效，请管理员重新上传此模块。")
             else:
                 st.info("该章节暂无内容。")
 
@@ -705,7 +713,7 @@ def page_exam():
     exam_count = exam_data.get("exam_count", 0) if isinstance(exam_data, dict) else 0
 
     # Back button
-    if st.button("← Back to Dashboard", key="exam_back"):
+    if st.button("← 返回仪表盘", key="exam_back"):
         st.session_state.page = "dashboard"
         st.rerun()
 
@@ -713,22 +721,22 @@ def page_exam():
     st.markdown(f"""
 <div style="margin-bottom:24px">
   <h1 style="font-size:1.5rem;font-weight:700;color:#0f172a;margin:0">{mod['title']}</h1>
-  <p style="color:#64748b;font-size:.9rem;margin:4px 0 0">Online Examination</p>
+  <p style="color:#64748b;font-size:.9rem;margin:4px 0 0">在线考试</p>
 </div>
 """, unsafe_allow_html=True)
 
     if not all_questions:
-        st.warning("No questions available for this module")
+        st.warning("该模块暂无考题")
         return
 
     checks = get_read_checks(user["id"], mid, len(mod["chapters"]))
     if not all(checks):
-        st.warning("Please complete all chapter readings before taking the exam")
+        st.warning("请先完成所有章节学习后再参加考试")
         return
 
     best = get_best_exam(user["id"], mid)
     if best is not None:
-        st.info(f"Best score: {best}/100 {'(Passed)' if best >= 80 else ''}")
+        st.info(f"最高分数: {best}/100 {'(已通过)' if best >= 80 else ''}")
 
     EXAM_DURATION = 30 * 60
     actual_count = exam_count if (exam_count > 0 and exam_count < len(all_questions)) else len(all_questions)
@@ -736,29 +744,29 @@ def page_exam():
     if not st.session_state.get("exam_started"):
         st.markdown(f"""
 <div style="background:#fff;border-radius:16px;padding:32px;border:1px solid #e2e8f0;margin-bottom:24px">
-  <h3 style="font-size:1.1rem;font-weight:600;color:#0f172a;margin-bottom:16px">Exam Details</h3>
+  <h3 style="font-size:1.1rem;font-weight:600;color:#0f172a;margin-bottom:16px">考试详情</h3>
   <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px">
     <div style="padding:16px;background:#f8fafc;border-radius:10px">
-      <div style="font-size:.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Questions</div>
+      <div style="font-size:.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">题目数量</div>
       <div style="font-size:1.5rem;font-weight:700;color:#0f172a">{actual_count}</div>
     </div>
     <div style="padding:16px;background:#f8fafc;border-radius:10px">
-      <div style="font-size:.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Passing Score</div>
+      <div style="font-size:.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">通过分数</div>
       <div style="font-size:1.5rem;font-weight:700;color:#0f172a">80/100</div>
     </div>
     <div style="padding:16px;background:#f8fafc;border-radius:10px">
-      <div style="font-size:.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Time Limit</div>
-      <div style="font-size:1.5rem;font-weight:700;color:#0f172a">30 min</div>
+      <div style="font-size:.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">考试时长</div>
+      <div style="font-size:1.5rem;font-weight:700;color:#0f172a">30 分钟</div>
     </div>
     <div style="padding:16px;background:#f8fafc;border-radius:10px">
-      <div style="font-size:.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Points Each</div>
+      <div style="font-size:.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">每题分值</div>
       <div style="font-size:1.5rem;font-weight:700;color:#0f172a">{round(100/actual_count)}</div>
     </div>
   </div>
 </div>
 """, unsafe_allow_html=True)
 
-        if st.button("Start Exam", type="primary", use_container_width=True):
+        if st.button("开始考试", type="primary", use_container_width=True):
             if actual_count < len(all_questions):
                 selected = random.sample(all_questions, actual_count)
             else:
@@ -824,7 +832,7 @@ def page_exam():
 
     # Submit button
     st.markdown("<div style='height:32px'></div>", unsafe_allow_html=True)
-    if st.button("Submit Exam", type="primary", use_container_width=True):
+    if st.button("提交考试", type="primary", use_container_width=True):
         unanswered = 0
         for qi, item in enumerate(questions):
             qtype = item.get("type", "single")
@@ -898,7 +906,7 @@ def page_result():
     # Details section
     if details:
         st.markdown("<div style='height:32px'></div>", unsafe_allow_html=True)
-        with st.expander("📝 Detailed Review", expanded=True):
+        with st.expander("📝 详细回顾", expanded=True):
             for i, d in enumerate(details):
                 icon = "✅" if d["earned"] == d["max"] else ("⚠️" if d["earned"] > 0 else "❌")
                 type_label = {"single": "Single", "multi": "Multi", "short": "Short"}.get(d["type"], "")
@@ -920,7 +928,7 @@ def page_result():
     st.markdown("<div style='height:32px'></div>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("📊 Dashboard", use_container_width=True):
+        if st.button("📊 仪表盘", use_container_width=True):
             st.session_state.page = "dashboard"
             st.rerun()
     with c2:
@@ -956,7 +964,7 @@ def page_certificate():
     st.markdown("<div style='height:32px'></div>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("📥 Download PDF", type="primary", use_container_width=True):
+        if st.button("📥 下载证书", type="primary", use_container_width=True):
             pdf_bytes = generate_certificate_pdf(
                 user["display_name"],
                 user.get("emp_id", ""),
@@ -965,14 +973,14 @@ def page_certificate():
                 {},
             )
             st.download_button(
-                "Download",
+                "下载PDF",
                 data=pdf_bytes,
                 file_name=f"certificate_{user.get('emp_id','')}.pdf",
                 mime="application/pdf",
                 use_container_width=True,
             )
     with c2:
-        if st.button("📊 Dashboard", use_container_width=True):
+        if st.button("📊 仪表盘", use_container_width=True):
             st.session_state.page = "dashboard"
             st.rerun()
 
@@ -1010,12 +1018,37 @@ def page_upload_course():
                 file_path = os.path.join(UPLOAD_DIR, safe_filename)
 
                 # 保存原始文件
+                file_bytes = f.read()
                 with open(file_path, "wb") as out:
-                    out.write(f.read())
+                    out.write(file_bytes)
 
                 ext = f.name.split('.')[-1].lower()
-                # 云端适配：直接存储原始文件，提供下载
-                chapters.append({"title": f.name, "file_path": file_path, "file_type": ext})
+                chapter_data = {"title": f.name, "file_path": file_path, "file_type": ext}
+
+                # 在线预览：提取 DOCX/PPTX 的 HTML 内容
+                if ext in ("docx", "doc"):
+                    try:
+                        result = mammoth.convert_to_html(io.BytesIO(file_bytes))
+                        chapter_data["html"] = result.value
+                    except Exception:
+                        pass
+                elif ext in ("pptx", "ppt"):
+                    try:
+                        prs = Presentation(io.BytesIO(file_bytes))
+                        all_html = ""
+                        for slide in prs.slides:
+                            for shape in slide.shapes:
+                                if shape.has_text_frame:
+                                    for para in shape.text_frame.paragraphs:
+                                        text = para.text.strip()
+                                        if text:
+                                            all_html += f"<p>{text}</p>"
+                        if all_html:
+                            chapter_data["html"] = all_html
+                    except Exception:
+                        pass
+
+                chapters.append(chapter_data)
 
             if replace_mid:
                 save_module(replace_mid, mod_title, chapters)
