@@ -8,7 +8,7 @@ Features: account management, training modules, exams, PDF certificates, course 
 import re
 import google.generativeai as genai
 import streamlit as st
-import sqlite3, hashlib, json, os, time, io, random
+import json, os, time, io, random
 from datetime import datetime
 from pathlib import Path
 import mammoth
@@ -18,6 +18,14 @@ from styles import inject_global_css
 from styles import render_login, render_dashboard_header
 from styles import render_stats_card, render_progress_card, render_module_card_v2
 from styles import render_exam_timer_v2, render_question_v2, render_result_v2, render_certificate_v2
+from db import (
+    init_db, hash_pw, authenticate, create_user, get_all_users,
+    delete_user, update_user, get_read_checks, mark_chapter_read,
+    save_exam_result, get_best_exam, get_training_time, add_training_time,
+    get_modules, save_module, delete_module_db, get_next_module_id,
+    get_exams, save_exam_questions, delete_exam_questions_db,
+    seed_admin, seed_default_modules, get_supabase,
+)
 
 # --- 云端适配：移除 Windows COM 依赖，云端不支持 Office 自动转 PDF ---
 
@@ -34,179 +42,14 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# --------------- DB ---------------
-DB_PATH = os.path.join(os.path.dirname(__file__), "training.db")
-
-def get_db():
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-def init_db():
-    conn = get_db()
-    c = conn.cursor()
-    c.executescript("""
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        display_name TEXT NOT NULL,
-        emp_id TEXT DEFAULT '',
-        department TEXT DEFAULT '',
-        role TEXT DEFAULT 'user',
-        created_at TEXT DEFAULT (datetime('now'))
-    );
-    CREATE TABLE IF NOT EXISTS progress (
-        user_id INTEGER,
-        module_id INTEGER,
-        chapter_idx INTEGER,
-        read_done INTEGER DEFAULT 0,
-        PRIMARY KEY (user_id, module_id, chapter_idx)
-    );
-    CREATE TABLE IF NOT EXISTS exam_results (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        module_id INTEGER,
-        score INTEGER,
-        answers TEXT,
-        taken_at TEXT DEFAULT (datetime('now'))
-    );
-    CREATE TABLE IF NOT EXISTS training_time (
-        user_id INTEGER,
-        module_id INTEGER,
-        seconds INTEGER DEFAULT 0,
-        PRIMARY KEY (user_id, module_id)
-    );
-    CREATE TABLE IF NOT EXISTS modules (
-        id INTEGER PRIMARY KEY,
-        title TEXT NOT NULL,
-        chapters TEXT NOT NULL
-    );
-    CREATE TABLE IF NOT EXISTS exam_questions (
-        module_id INTEGER PRIMARY KEY,
-        questions TEXT NOT NULL,
-        exam_count INTEGER DEFAULT 0
-    );
-    """)
-    try:
-        c.execute("ALTER TABLE exam_questions ADD COLUMN exam_count INTEGER DEFAULT 0")
-    except sqlite3.OperationalError:
-        pass # 如果列已经存在会报错，我们直接忽略即可
-    # ====================================================
-
-    # Seed admin account if not exists
-    admin_hash = hashlib.sha256("admin123".encode()).hexdigest()
-    # Seed admin account if not exists
-    admin_hash = hashlib.sha256("admin123".encode()).hexdigest()
-    c.execute("INSERT OR IGNORE INTO users (username, password_hash, display_name, role) VALUES (?,?,?,?)",
-              ("admin", admin_hash, "管理员", "admin"))
-    # Seed default modules and exams if empty
-    if c.execute("SELECT COUNT(*) FROM modules").fetchone()[0] == 0:
-        defaults = get_default_modules()
-        for mid, mod in defaults.items():
-            c.execute("INSERT INTO modules (id, title, chapters) VALUES (?,?,?)",
-                      (mid, mod["title"], json.dumps(mod["chapters"], ensure_ascii=False)))
-        default_exams = get_default_exams()
-        for mid, qs in default_exams.items():
-            c.execute("INSERT INTO exam_questions (module_id, questions) VALUES (?,?)",
-                      (mid, json.dumps(qs, ensure_ascii=False)))
-    conn.commit()
-    conn.close()
-
-
-# --------------- AUTH HELPERS ---------------
-def hash_pw(pw: str) -> str:
-    return hashlib.sha256(pw.encode()).hexdigest()
-
-def authenticate(username: str, password: str):
-    conn = get_db()
-    row = conn.execute("SELECT * FROM users WHERE username=? AND password_hash=?",
-                       (username, hash_pw(password))).fetchone()
-    conn.close()
-    return dict(row) if row else None
-
-def create_user(username, password, display_name, emp_id, department, role="user"):
-    conn = get_db()
-    try:
-        conn.execute("INSERT INTO users (username,password_hash,display_name,emp_id,department,role) VALUES (?,?,?,?,?,?)",
-                     (username, hash_pw(password), display_name, emp_id, department, role))
-        conn.commit()
-        return True
-    except sqlite3.IntegrityError:
-        return False
-    finally:
-        conn.close()
-
-def get_all_users():
-    conn = get_db()
-    rows = conn.execute("SELECT * FROM users ORDER BY id").fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
-
-def delete_user(uid):
-    conn = get_db()
-    conn.execute("DELETE FROM users WHERE id=?", (uid,))
-    conn.execute("DELETE FROM progress WHERE user_id=?", (uid,))
-    conn.execute("DELETE FROM exam_results WHERE user_id=?", (uid,))
-    conn.execute("DELETE FROM training_time WHERE user_id=?", (uid,))
-    conn.commit()
-    conn.close()
-
-def update_user(uid, **kwargs):
-    conn = get_db()
-    for k, v in kwargs.items():
-        conn.execute(f"UPDATE users SET {k}=? WHERE id=?", (v, uid))
-    conn.commit()
-    conn.close()
-
-
-# --------------- PROGRESS DB ---------------
-def get_read_checks(user_id, module_id, chapter_count):
-    conn = get_db()
-    rows = conn.execute("SELECT chapter_idx, read_done FROM progress WHERE user_id=? AND module_id=?",
-                        (user_id, module_id)).fetchall()
-    conn.close()
-    checks = [False] * chapter_count
-    for r in rows:
-        if r["chapter_idx"] < chapter_count:
-            checks[r["chapter_idx"]] = bool(r["read_done"])
-    return checks
-
-def mark_chapter_read(user_id, module_id, chapter_idx):
-    conn = get_db()
-    conn.execute("INSERT OR REPLACE INTO progress (user_id,module_id,chapter_idx,read_done) VALUES (?,?,?,1)",
-                 (user_id, module_id, chapter_idx))
-    conn.commit()
-    conn.close()
-
-def save_exam_result(user_id, module_id, score, answers):
-    conn = get_db()
-    conn.execute("INSERT INTO exam_results (user_id,module_id,score,answers) VALUES (?,?,?,?)",
-                 (user_id, module_id, score, json.dumps(answers)))
-    conn.commit()
-    conn.close()
-
-def get_best_exam(user_id, module_id):
-    conn = get_db()
-    row = conn.execute("SELECT MAX(score) as best FROM exam_results WHERE user_id=? AND module_id=?",
-                       (user_id, module_id)).fetchone()
-    conn.close()
-    return row["best"] if row and row["best"] is not None else None
-
-def get_training_time(user_id, module_id):
-    conn = get_db()
-    row = conn.execute("SELECT seconds FROM training_time WHERE user_id=? AND module_id=?",
-                       (user_id, module_id)).fetchone()
-    conn.close()
-    return row["seconds"] if row else 0
-
-def add_training_time(user_id, module_id, seconds):
-    conn = get_db()
-    conn.execute("""INSERT INTO training_time (user_id,module_id,seconds) VALUES (?,?,?)
-                    ON CONFLICT(user_id,module_id) DO UPDATE SET seconds=seconds+?""",
-                 (user_id, module_id, seconds, seconds))
-    conn.commit()
-    conn.close()
+# --------------- DB (from db.py) ---------------
+# init_db, hash_pw, authenticate, create_user, get_all_users,
+# delete_user, update_user, get_read_checks, mark_chapter_read,
+# save_exam_result, get_best_exam, get_training_time, add_training_time,
+# get_modules, save_module, delete_module_db, get_next_module_id,
+# get_exams, save_exam_questions, delete_exam_questions_db,
+# seed_admin, seed_default_modules, get_supabase
+# are all imported from db.py at the top of this file
 
 
 # --------------- DEFAULT TRAINING DATA ---------------
@@ -627,59 +470,6 @@ def fmt_time(seconds):
     h, m = divmod(m, 60)
     return f"{h}小时{m}分{s}秒" if h else f"{m}分{s}秒"
 
-def get_modules():
-    conn = get_db()
-    rows = conn.execute("SELECT id, title, chapters FROM modules ORDER BY id").fetchall()
-    conn.close()
-    return {r["id"]: {"title": r["title"], "chapters": json.loads(r["chapters"])} for r in rows}
-
-def save_module(mid, title, chapters):
-    conn = get_db()
-    conn.execute("INSERT OR REPLACE INTO modules (id, title, chapters) VALUES (?,?,?)",
-                 (mid, title, json.dumps(chapters, ensure_ascii=False)))
-    conn.commit()
-    conn.close()
-
-def delete_module_db(mid):
-    conn = get_db()
-    conn.execute("DELETE FROM modules WHERE id=?", (mid,))
-    conn.execute("DELETE FROM exam_questions WHERE module_id=?", (mid,))
-    conn.execute("DELETE FROM progress WHERE module_id=?", (mid,))
-    conn.execute("DELETE FROM exam_results WHERE module_id=?", (mid,))
-    conn.execute("DELETE FROM training_time WHERE module_id=?", (mid,))
-    conn.commit()
-    conn.close()
-
-def get_next_module_id():
-    conn = get_db()
-    row = conn.execute("SELECT MAX(id) as m FROM modules").fetchone()
-    conn.close()
-    return (row["m"] or 0) + 1
-
-def get_exams():
-    conn = get_db()
-    rows = conn.execute("SELECT module_id, questions, exam_count FROM exam_questions").fetchall()
-    conn.close()
-    result = {}
-    for r in rows:
-        result[r["module_id"]] = {
-            "questions": json.loads(r["questions"]),
-            "exam_count": r["exam_count"] or 0,
-        }
-    return result
-
-def save_exam_questions(mid, questions, exam_count=0):
-    conn = get_db()
-    conn.execute("INSERT OR REPLACE INTO exam_questions (module_id, questions, exam_count) VALUES (?,?,?)",
-                 (mid, json.dumps(questions, ensure_ascii=False), exam_count))
-    conn.commit()
-    conn.close()
-
-def delete_exam_questions_db(mid):
-    conn = get_db()
-    conn.execute("DELETE FROM exam_questions WHERE module_id=?", (mid,))
-    conn.commit()
-    conn.close()
 
 # --------------- PAGE: LOGIN ---------------
 def page_login():
@@ -747,8 +537,9 @@ def page_admin():
         cols[3].write(u["role"])
         if u["role"] != "admin" or u["id"] != 1:
             if cols[4].button("重置密码", key=f"rst_{u['id']}"):
-                update_user(u["id"], password_hash=hash_pw("123456"))
-                st.success(f"{u['username']} 密码已重置为 123456")
+                reset_pw = st.secrets.get("default_reset_password", "123456")
+                update_user(u["id"], password_hash=hash_pw(reset_pw))
+                st.success(f"{u['username']} 密码已重置")
             if cols[5].button("删除", key=f"del_{u['id']}"):
                 delete_user(u["id"])
                 st.rerun()
@@ -975,6 +766,9 @@ def page_module():
                         with open(file_path, "rb") as f:
                             st.download_button(label=f"📥 下载课件 ({file_type.upper()})", data=f, file_name=f"{title_text}.{file_type}", key=f"dl_{mid}_{idx}")
             elif old_html:
+                # 注意：此处渲染管理员上传的 HTML 内容
+                # 风险：恶意 DOCX/PPTX 可能包含 JavaScript
+                # 缓解：仅管理员可上传，且内容在内部使用
                 st.markdown(old_html, unsafe_allow_html=True)
             else:
                 st.info("该章节暂无内容。")
@@ -1297,7 +1091,10 @@ def page_upload_course():
         chapters = []
         try:
             for f in uploaded_files:
-                safe_filename = f"{int(time.time())}_{f.name}"
+                # 安全处理文件名：去除路径分隔符，防止路径穿越
+                import re as _re
+                clean_name = _re.sub(r'[/\\:*?"<>|]', '_', f.name)
+                safe_filename = f"{int(time.time())}_{clean_name}"
                 file_path = os.path.join(UPLOAD_DIR, safe_filename)
 
                 # 保存原始文件
@@ -1310,10 +1107,10 @@ def page_upload_course():
 
             if replace_mid:
                 save_module(replace_mid, mod_title, chapters)
-                conn = get_db()
-                conn.execute("DELETE FROM progress WHERE module_id=?", (replace_mid,))
-                conn.commit()
-                conn.close()
+                # 清除该模块的学习进度
+                from db import get_supabase
+                sb = get_supabase()
+                sb.table("progress").delete().eq("module_id", replace_mid).execute()
                 st.success(f"已替换模块 [{mod_title}] 的课件。")
             else:
                 new_id = get_next_module_id()
@@ -1563,14 +1360,13 @@ def page_analytics():
         return
     st.markdown("## 考生分析")
 
-    conn = get_db()
-    users = [dict(r) for r in conn.execute(
-        "SELECT id, username, display_name, department, emp_id FROM users WHERE role='user' ORDER BY id"
-    ).fetchall()]
+    from db import get_supabase
+    sb = get_supabase()
+    result = sb.table("users").select("id, username, display_name, department, emp_id").eq("role", "user").order("id").execute()
+    users = result.data
 
     if not users:
         st.info("暂无普通用户")
-        conn.close()
         return
 
     modules = get_modules()
@@ -1626,10 +1422,8 @@ def page_analytics():
         read_n = sum(checks)
         st.progress(read_n / ch_count if ch_count else 0, text=f"阅读进度: {read_n}/{ch_count}")
 
-        exam_rows = conn.execute(
-            "SELECT score, answers, taken_at FROM exam_results WHERE user_id=? AND module_id=? ORDER BY taken_at DESC",
-            (sel_uid, mid)
-        ).fetchall()
+        exam_result = sb.table("exam_results").select("score, answers, taken_at").eq("user_id", sel_uid).eq("module_id", mid).order("taken_at", desc=True).execute()
+        exam_rows = exam_result.data
 
         if exam_rows:
             best = max(r["score"] for r in exam_rows)
@@ -1691,13 +1485,21 @@ def page_analytics():
         t = get_training_time(sel_uid, mid)
         st.caption(f"学习时长: {fmt_time(t)}")
 
-    conn.close()
-
 # --------------- SIDEBAR & MAIN ---------------
 def main():
     st.set_page_config(page_title="驭长风供应链培训系统", page_icon="📦", layout="wide")
     inject_global_css()
+
+    # 初始化 Supabase 数据库
     init_db()
+
+    # 种子管理员账号
+    admin_pw = st.secrets.get("admin_password", None)
+    if admin_pw:
+        seed_admin(admin_pw)
+
+    # 种子默认模块和考试
+    seed_default_modules(get_default_modules(), get_default_exams())
 
     if "page" not in st.session_state:
         st.session_state.page = "login"

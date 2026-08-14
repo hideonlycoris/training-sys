@@ -3,8 +3,8 @@ headless = true
 port = 8501
 address = "0.0.0.0"
 maxUploadSize = 200
-enableCORS = false
-enableXsrfProtection = false
+enableCORS = true
+enableXsrfProtection = true
 
 [theme]
 primaryColor = "#1a3c6e"

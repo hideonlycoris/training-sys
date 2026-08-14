@@ -69,10 +69,12 @@ def init_db():
         exam_count INTEGER DEFAULT 0
     );
     """)
-    # Seed admin account if not exists
-    admin_hash = hashlib.sha256("admin123".encode()).hexdigest()
-    c.execute("INSERT OR IGNORE INTO users (username, password_hash, display_name, role) VALUES (?,?,?,?)",
-              ("admin", admin_hash, "管理员", "admin"))
+    # Seed admin account if not exists (password from Streamlit Secrets)
+    admin_pw = st.secrets.get("admin_password", None)
+    if admin_pw:
+        admin_hash = hashlib.sha256(admin_pw.encode()).hexdigest()
+        c.execute("INSERT OR IGNORE INTO users (username, password_hash, display_name, role) VALUES (?,?,?,?)",
+                  ("admin", admin_hash, "管理员", "admin"))
     # Seed default modules and exams if empty
     if c.execute("SELECT COUNT(*) FROM modules").fetchone()[0] == 0:
         defaults = get_default_modules()
@@ -131,8 +133,11 @@ def delete_user(uid):
 
 
 def update_user(uid, **kwargs):
+    ALLOWED_COLUMNS = {"password_hash", "display_name", "role", "department", "emp_id"}
     conn = get_db()
     for k, v in kwargs.items():
+        if k not in ALLOWED_COLUMNS:
+            raise ValueError(f"不允许更新列: {k}")
         conn.execute(f"UPDATE users SET {k}=? WHERE id=?", (v, uid))
     conn.commit()
     conn.close()
@@ -711,8 +716,9 @@ def page_admin():
         cols[3].write(u["role"])
         if u["role"] != "admin" or u["id"] != 1:
             if cols[4].button("重置密码", key=f"rst_{u['id']}"):
-                update_user(u["id"], password_hash=hash_pw("123456"))
-                st.success(f"{u['username']} 密码已重置为 123456")
+                reset_pw = st.secrets.get("default_reset_password", "123456")
+                update_user(u["id"], password_hash=hash_pw(reset_pw))
+                st.success(f"{u['username']} 密码已重置")
             if cols[5].button("删除", key=f"del_{u['id']}"):
                 delete_user(u["id"])
                 st.rerun()
