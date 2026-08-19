@@ -35,6 +35,21 @@ import urllib.parse
 
 STORAGE_BUCKET = "training-files"
 
+# --------------- GEMINI AI 配置 ---------------
+def get_gemini_config():
+    """获取 Gemini AI 打分配置"""
+    try:
+        if "gemini" in st.secrets:
+            gemini = st.secrets["gemini"]
+            return {
+                "enabled": bool(gemini.get("use_ai_scoring", False)),
+                "api_key": str(gemini.get("api_key", "")),
+                "model": str(gemini.get("model_name", "gemini-2.5-flash"))
+            }
+    except Exception:
+        pass
+    return {"enabled": False, "api_key": "", "model": "gemini-2.5-flash"}
+
 def upload_to_storage(file_bytes: bytes, filename: str) -> str:
     """上传文件到 Supabase Storage，返回公开访问 URL"""
     sb = get_supabase()
@@ -616,33 +631,21 @@ def page_dashboard():
 # --------------- SCORING HELPERS ---------------
 def score_short_answer(user_ans: str, item: dict) -> tuple[float, str]:
     """基于 Google Gemini 的语义化智能打分，并返回详细判分理由"""
-    
+
     user_ans = str(user_ans or "").strip()
     if not user_ans:
         return 0.0, "学员未作答，计0分。"
-    
+
     ref_answer = item.get("answer", "")
     keywords = item.get("keywords", [])
 
-    # 读取 Gemini 配置开关
-    USE_AI_SCORING = False
-    api_key = ""
-    model_name = "gemini-2.5-flash"
+    # 获取 Gemini 配置
+    gemini = get_gemini_config()
 
-    try:
-        # Streamlit secrets 嵌套表访问
-        if "gemini" in st.secrets:
-            gemini_section = st.secrets["gemini"]
-            USE_AI_SCORING = bool(gemini_section.get("use_ai_scoring", False))
-            api_key = str(gemini_section.get("api_key", ""))
-            model_name = str(gemini_section.get("model_name", "gemini-2.5-flash"))
-    except Exception as e:
-        pass
-
-    if USE_AI_SCORING and ref_answer and api_key:
+    if gemini["enabled"] and ref_answer and gemini["api_key"]:
         try:
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel(model_name)
+            genai.configure(api_key=gemini["api_key"])
+            model = genai.GenerativeModel(gemini["model"])
             
             prompt = f"""你是一个严谨的供应链系统新员工培训考试阅卷助手。
             请对比【标准参考答案】与【学员回答】，判断学员是否答到了核心语义。
