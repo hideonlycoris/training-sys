@@ -44,11 +44,11 @@ def get_gemini_config():
             return {
                 "enabled": bool(gemini.get("use_ai_scoring", False)),
                 "api_key": str(gemini.get("api_key", "")),
-                "model": str(gemini.get("model_name", "gemini-2.5-flash"))
+                "model": str(gemini.get("model_name", "gemini-1.5-flash"))
             }
     except Exception:
         pass
-    return {"enabled": False, "api_key": "", "model": "gemini-2.5-flash"}
+    return {"enabled": False, "api_key": "", "model": "gemini-1.5-flash"}
 
 def upload_to_storage(file_bytes: bytes, filename: str) -> str:
     """上传文件到 Supabase Storage，返回公开访问 URL"""
