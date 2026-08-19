@@ -630,12 +630,29 @@ def score_short_answer(user_ans: str, item: dict) -> tuple[float, str]:
     model_name = "gemini-2.5-flash"
 
     try:
-        gemini_section = st.secrets["gemini"]
-        USE_AI_SCORING = gemini_section.get("use_ai_scoring", False)
-        api_key = gemini_section.get("api_key", "")
-        model_name = gemini_section.get("model_name", "gemini-2.5-flash")
-    except Exception:
-        pass
+        # 尝试不同的方式读取 secrets
+        print(f"[DEBUG] st.secrets keys: {list(st.secrets.keys())}")
+
+        if "gemini" in st.secrets:
+            gemini_section = st.secrets["gemini"]
+            print(f"[DEBUG] gemini_section type: {type(gemini_section)}")
+            print(f"[DEBUG] gemini_section: {gemini_section}")
+
+            # 尝试多种方式获取 use_ai_scoring
+            if hasattr(gemini_section, 'get'):
+                USE_AI_SCORING = gemini_section.get("use_ai_scoring", False)
+            elif hasattr(gemini_section, 'use_ai_scoring'):
+                USE_AI_SCORING = gemini_section.use_ai_scoring
+
+            if hasattr(gemini_section, 'get'):
+                api_key = gemini_section.get("api_key", "")
+            elif hasattr(gemini_section, 'api_key'):
+                api_key = gemini_section.api_key
+
+            print(f"[DEBUG] USE_AI_SCORING: {USE_AI_SCORING}")
+            print(f"[DEBUG] api_key: {api_key[:10]}..." if api_key else "[DEBUG] api_key: empty")
+    except Exception as e:
+        print(f"[DEBUG] Error reading secrets: {e}")
 
     if USE_AI_SCORING and ref_answer and api_key:
         try:
