@@ -26,6 +26,7 @@ from db import (
     get_exams, save_exam_questions, delete_exam_questions_db,
     seed_admin, seed_default_modules, get_supabase,
 )
+import fitz  # PyMuPDF
 
 # --- 云端适配：移除 Windows COM 依赖，云端不支持 Office 自动转 PDF ---
 
@@ -63,6 +64,36 @@ def get_storage_url(path: str) -> str:
         return path
     sb = get_supabase()
     return sb.storage.from_(STORAGE_BUCKET).get_public_url(path)
+
+def pdf_to_images(pdf_bytes: bytes, filename: str) -> list:
+    """将 PDF 每页转为图片并上传到 Supabase Storage，返回图片 URL 列表"""
+    import fitz  # PyMuPDF
+    import re as _re
+
+    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    image_urls = []
+
+    # 文件名用于图片命名
+    name_part = filename.rsplit(".", 1)[0] if "." in filename else filename
+    safe_name = _re.sub(r'[^\x00-\x7F]+', '_', name_part)
+    safe_name = _re.sub(r'_+', '_', safe_name).strip('_')
+
+    sb = get_supabase()
+
+    for page_num in range(len(doc)):
+        page = doc.load_page(page_num)
+        # 设置较高的 DPI 以保证清晰度
+        pix = page.get_pixmap(dpi=150)
+        img_bytes = pix.tobytes("png")
+
+        # 上传图片
+        img_name = f"{int(time.time())}_{safe_name}_p{page_num + 1}.png"
+        sb.storage.from_(STORAGE_BUCKET).upload(img_name, img_bytes)
+        img_url = sb.storage.from_(STORAGE_BUCKET).get_public_url(img_name)
+        image_urls.append(img_url)
+
+    doc.close()
+    return image_urls
 
 # --------------- DB (from db.py) ---------------
 # init_db, hash_pw, authenticate, create_user, get_all_users,
@@ -689,6 +720,7 @@ def page_module():
             file_path = ch.get("file_path", "")  # 兼容旧数据
             file_type = ch.get("file_type", "pdf")
             html_content = ch.get("html", "")
+            slide_images = ch.get("slide_images", [])
 
             # 获取实际访问 URL
             if file_url:
@@ -698,20 +730,19 @@ def page_module():
             else:
                 display_url = ""
 
-            # 在线预览
-            if file_type in ("pptx", "ppt") and display_url:
+            # 在线预览 - 统一图片展示
+            if slide_images:
+                # PDF 或其他格式已转为图片，逐页展示
+                for idx, img in enumerate(slide_images):
+                    img_url = img if img.startswith("http") else get_storage_url(img)
+                    st.image(img_url, use_container_width=True, caption=f"第 {idx + 1} 页")
+            elif file_type in ("pptx", "ppt") and display_url:
                 # PPT 使用 Microsoft Office Online 预览（保留原始排版）
                 import urllib.parse
                 encoded_url = urllib.parse.quote(display_url, safe='')
                 office_url = f"https://view.officeapps.live.com/op/embed.aspx?src={encoded_url}"
                 st.markdown(f"""
                 <iframe src="{office_url}"
-                        width="100%" height="600px" style="border:none;border-radius:8px;"></iframe>
-                """, unsafe_allow_html=True)
-            elif file_type == "pdf" and display_url:
-                # PDF 内嵌预览
-                st.markdown(f"""
-                <iframe src="{display_url}"
                         width="100%" height="600px" style="border:none;border-radius:8px;"></iframe>
                 """, unsafe_allow_html=True)
             elif html_content:
@@ -1096,6 +1127,13 @@ def page_upload_course():
                             if has_content:
                                 all_html += slide_html
                         chapter_data["html"] = all_html
+                    except Exception:
+                        pass
+                elif ext == "pdf":
+                    # PDF 转图片，每页一张图
+                    try:
+                        image_urls = pdf_to_images(file_bytes, clean_name)
+                        chapter_data["slide_images"] = image_urls
                     except Exception:
                         pass
 
