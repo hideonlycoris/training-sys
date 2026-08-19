@@ -44,11 +44,11 @@ def get_gemini_config():
             return {
                 "enabled": bool(gemini.get("use_ai_scoring", False)),
                 "api_key": str(gemini.get("api_key", "")),
-                "model": str(gemini.get("model_name", "gemini-1.5-flash"))
+                "model": str(gemini.get("model_name", "gemini-2.0-flash"))
             }
     except Exception:
         pass
-    return {"enabled": False, "api_key": "", "model": "gemini-1.5-flash"}
+    return {"enabled": False, "api_key": "", "model": "gemini-2.0-flash"}
 
 def upload_to_storage(file_bytes: bytes, filename: str) -> str:
     """上传文件到 Supabase Storage，返回公开访问 URL"""
@@ -643,6 +643,7 @@ def score_short_answer(user_ans: str, item: dict) -> tuple[float, str]:
     gemini = get_gemini_config()
 
     if gemini["enabled"] and ref_answer and gemini["api_key"]:
+        print(f"Gemini AI 打分: model={gemini['model']}, api_key={'*' * 8}{gemini['api_key'][-4:]}")
         try:
             genai.configure(api_key=gemini["api_key"])
             model = genai.GenerativeModel(gemini["model"])
@@ -679,8 +680,6 @@ def score_short_answer(user_ans: str, item: dict) -> tuple[float, str]:
                 
         except Exception as e:
             # 显示具体错误信息，方便排查
-            import streamlit as st
-            st.warning(f"⚠️ AI 打分异常: {e}")
             print(f"Gemini 阅卷异常，降级为常规匹配: {e}") 
             
     # ================= 常规匹配算法 (降级方案) =================
