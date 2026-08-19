@@ -625,16 +625,20 @@ def score_short_answer(user_ans: str, item: dict) -> tuple[float, str]:
     keywords = item.get("keywords", [])
 
     # 读取 Gemini 配置开关
-    try:
-        USE_AI_SCORING = st.secrets["gemini"]["use_ai_scoring"]
-    except (KeyError, TypeError):
-        USE_AI_SCORING = False
+    USE_AI_SCORING = False
+    api_key = ""
+    model_name = "gemini-2.5-flash"
 
-    if USE_AI_SCORING and ref_answer:
+    try:
+        gemini_section = st.secrets["gemini"]
+        USE_AI_SCORING = gemini_section.get("use_ai_scoring", False)
+        api_key = gemini_section.get("api_key", "")
+        model_name = gemini_section.get("model_name", "gemini-2.5-flash")
+    except Exception:
+        pass
+
+    if USE_AI_SCORING and ref_answer and api_key:
         try:
-            api_key = st.secrets["gemini"]["api_key"]
-            model_name = st.secrets["gemini"].get("model_name", "gemini-2.5-flash")
-            
             genai.configure(api_key=api_key)
             model = genai.GenerativeModel(model_name)
             
