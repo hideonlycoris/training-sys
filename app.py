@@ -689,7 +689,6 @@ def page_module():
             file_path = ch.get("file_path", "")  # 兼容旧数据
             file_type = ch.get("file_type", "pdf")
             html_content = ch.get("html", "")
-            slide_images = ch.get("slide_images", [])
 
             # 获取实际访问 URL
             if file_url:
@@ -699,24 +698,25 @@ def page_module():
             else:
                 display_url = ""
 
-            # 在线预览：优先显示 PPT 图片
-            if slide_images:
-                for img in slide_images:
-                    img_url = img if img.startswith("http") else get_storage_url(img)
-                    st.image(img_url, use_container_width=True)
+            # 在线预览
+            if file_type in ("pptx", "ppt") and display_url:
+                # PPT 使用 Microsoft Office Online 预览（保留原始排版）
+                import urllib.parse
+                encoded_url = urllib.parse.quote(display_url, safe='')
+                office_url = f"https://view.officeapps.live.com/op/embed.aspx?src={encoded_url}"
+                st.markdown(f"""
+                <iframe src="{office_url}"
+                        width="100%" height="600px" style="border:none;border-radius:8px;"></iframe>
+                """, unsafe_allow_html=True)
+            elif file_type == "pdf" and display_url:
+                # PDF 内嵌预览
+                st.markdown(f"""
+                <iframe src="{display_url}"
+                        width="100%" height="600px" style="border:none;border-radius:8px;"></iframe>
+                """, unsafe_allow_html=True)
             elif html_content:
+                # DOCX 或其他格式显示提取的 HTML 内容
                 st.markdown(html_content, unsafe_allow_html=True)
-            elif display_url:
-                if file_type == "pdf":
-                    # PDF 内嵌预览
-                    pdf_display = f"""
-                    <iframe src="{display_url}"
-                            width="100%" height="600px" style="border:none;border-radius:8px;"></iframe>
-                    """
-                    st.markdown(pdf_display, unsafe_allow_html=True)
-                else:
-                    # 其他格式提供下载链接
-                    st.markdown(f'<a href="{display_url}" target="_blank" style="display:inline-block;padding:8px 16px;background:#1a3c6e;color:white;border-radius:8px;text-decoration:none;">📥 下载课件 ({file_type.upper()})</a>', unsafe_allow_html=True)
             else:
                 st.info("该章节暂无内容。")
 
