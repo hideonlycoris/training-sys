@@ -585,12 +585,12 @@ def page_dashboard():
         # Action buttons
         c1, c2 = st.columns(2)
         with c1:
-            if st.button("📖 Start Learning", key=f"learn_{mid}", use_container_width=True):
+            if st.button("📖 开始学习", key=f"learn_{mid}", use_container_width=True):
                 st.session_state.page = "module"
                 st.session_state.current_module = mid
                 st.rerun()
         with c2:
-            if st.button("📝 Take Exam", key=f"exam_{mid}", use_container_width=True):
+            if st.button("📝 参加考试", key=f"exam_{mid}", use_container_width=True):
                 st.session_state.page = "exam"
                 st.session_state.current_module = mid
                 st.session_state.exam_started = False

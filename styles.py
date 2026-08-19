@@ -668,15 +668,15 @@ def render_module_card_v2(title: str, status: str, chapters: str, exam: str,
   </div>
   <div class="stats">
     <div class="stat">
-      <div class="stat-label">Chapters</div>
+      <div class="stat-label">课时</div>
       <div class="stat-value">{chapters}</div>
     </div>
     <div class="stat">
-      <div class="stat-label">Exam</div>
+      <div class="stat-label">考试</div>
       <div class="stat-value">{exam}</div>
     </div>
     <div class="stat">
-      <div class="stat-label">Duration</div>
+      <div class="stat-label">时长</div>
       <div class="stat-value">{duration}</div>
     </div>
   </div>
@@ -1052,10 +1052,10 @@ def render_certificate_v2(name: str, emp_id: str, dept: str,
   <table>
     <thead>
       <tr>
-        <th style="text-align:left">Module</th>
-        <th>Score</th>
-        <th>Duration</th>
-        <th>Result</th>
+        <th style="text-align:left">模块</th>
+        <th>分数</th>
+        <th>时长</th>
+        <th>结果</th>
       </tr>
     </thead>
     <tbody>
