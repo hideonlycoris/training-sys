@@ -733,9 +733,9 @@ def page_module():
             # 在线预览 - 统一图片展示
             if slide_images:
                 # PDF 或其他格式已转为图片，逐页展示
-                for idx, img in enumerate(slide_images):
+                for page_idx, img in enumerate(slide_images):
                     img_url = img if img.startswith("http") else get_storage_url(img)
-                    st.image(img_url, use_container_width=True, caption=f"第 {idx + 1} 页")
+                    st.image(img_url, use_container_width=True, caption=f"第 {page_idx + 1} 页")
             elif file_type in ("pptx", "ppt") and display_url:
                 # PPT 使用 Microsoft Office Online 预览（保留原始排版）
                 import urllib.parse
