@@ -797,7 +797,8 @@ def page_exam():
         st.info(f"最高分数: {best}/100 {'(已通过)' if best >= 80 else ''}")
 
     EXAM_DURATION = 30 * 60
-    actual_count = exam_count if (exam_count > 0 and exam_count < len(all_questions)) else len(all_questions)
+    # 默认每次考试抽 10 道题
+    actual_count = exam_count if (exam_count > 0 and exam_count < len(all_questions)) else min(10, len(all_questions))
 
     if not st.session_state.get("exam_started"):
         st.markdown(f"""
