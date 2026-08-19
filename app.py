@@ -625,12 +625,10 @@ def score_short_answer(user_ans: str, item: dict) -> tuple[float, str]:
     keywords = item.get("keywords", [])
 
     # 读取 Gemini 配置开关
-    gemini_config = st.secrets.get("gemini", {})
-    USE_AI_SCORING = gemini_config.get("use_ai_scoring", False)
-
-    # 调试信息
-    print(f"[DEBUG] gemini config: {gemini_config}")
-    print(f"[DEBUG] USE_AI_SCORING: {USE_AI_SCORING}")
+    try:
+        USE_AI_SCORING = st.secrets["gemini"]["use_ai_scoring"]
+    except (KeyError, TypeError):
+        USE_AI_SCORING = False
 
     if USE_AI_SCORING and ref_answer:
         try:
