@@ -639,9 +639,6 @@ def score_short_answer(user_ans: str, item: dict) -> tuple[float, str]:
     except Exception as e:
         pass
 
-    # 显示调试信息
-    st.info(f"🔧 AI打分开关: {USE_AI_SCORING} | 有API密钥: {bool(api_key)} | 有参考答案: {bool(ref_answer)}")
-
     if USE_AI_SCORING and ref_answer and api_key:
         try:
             genai.configure(api_key=api_key)
