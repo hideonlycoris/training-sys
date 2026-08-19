@@ -625,8 +625,13 @@ def score_short_answer(user_ans: str, item: dict) -> tuple[float, str]:
     keywords = item.get("keywords", [])
 
     # 读取 Gemini 配置开关
-    USE_AI_SCORING = st.secrets.get("gemini", {}).get("use_ai_scoring", False)
-    
+    gemini_config = st.secrets.get("gemini", {})
+    USE_AI_SCORING = gemini_config.get("use_ai_scoring", False)
+
+    # 调试信息
+    print(f"[DEBUG] gemini config: {gemini_config}")
+    print(f"[DEBUG] USE_AI_SCORING: {USE_AI_SCORING}")
+
     if USE_AI_SCORING and ref_answer:
         try:
             api_key = st.secrets["gemini"]["api_key"]
@@ -666,8 +671,10 @@ def score_short_answer(user_ans: str, item: dict) -> tuple[float, str]:
             return min(max(score, 0.0), 1.0), f"🤖 阅卷助手: {reason}"
                 
         except Exception as e:
-            print(f"Gemini 阅卷异常，降级为常规匹配: {e}")
-            pass 
+            # 显示具体错误信息，方便排查
+            import streamlit as st
+            st.warning(f"⚠️ AI 打分异常: {e}")
+            print(f"Gemini 阅卷异常，降级为常规匹配: {e}") 
             
     # ================= 常规匹配算法 (降级方案) =================
     score = 0.0
